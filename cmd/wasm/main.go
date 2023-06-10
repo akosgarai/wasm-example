@@ -4,22 +4,11 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"syscall/js"
-)
 
-func prettyJSON(input string) (string, error) {
-	var raw interface{}
-	if err := json.Unmarshal([]byte(input), &raw); err != nil {
-		return "", err
-	}
-	pretty, err := json.MarshalIndent(raw, "", "  ")
-	if err != nil {
-		return "", err
-	}
-	return string(pretty), nil
-}
+	"github.com/akosgarai/wasm-example/pkg/formatter"
+)
 
 func jsonWrapper() js.Func {
 	jsonFunc := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
@@ -42,7 +31,7 @@ func jsonWrapper() js.Func {
 		}
 		inputJSON := args[0].String()
 		fmt.Printf("input %s\n", inputJSON)
-		pretty, err := prettyJSON(inputJSON)
+		pretty, err := formatter.PrettyJSON(inputJSON)
 		if err != nil {
 			return map[string]interface{}{
 				"error": fmt.Sprintf("unable to parse JSON. Error %s occurred\n", err),
