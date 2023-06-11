@@ -1,6 +1,8 @@
 package layout
 
 import (
+	"fmt"
+	"net/http"
 	"syscall/js"
 
 	"github.com/akosgarai/wasm-example/pkg/page"
@@ -74,10 +76,24 @@ func (l *Layout) LoadPage() {
 			"title":       "Options: no, mysql",
 			"label":       "Project database",
 		}},
+		{"input", map[string]interface{}{
+			"id":    "submit",
+			"name":  "submit",
+			"type":  "button",
+			"title": "Submit",
+			"value": "Submit",
+		}},
 	}
 	for _, item := range formItems {
 		formContainer.Call("appendChild", l.buildFormItem(item.Tag, item.Attributes))
 	}
+	submit := formContainer.Call("querySelector", "#submit")
+	submit.Set("onclick", l.submitForm().Call("bind", submit))
+}
+
+// Run runs the formatter page.
+func (l *Layout) Run() {
+	<-make(chan bool)
 }
 
 // buildFormItem returns a form item.
@@ -94,4 +110,24 @@ func (l *Layout) buildFormItem(tag string, attributes map[string]interface{}) js
 	}
 	itemContainer.Call("appendChild", element)
 	return itemContainer
+}
+
+// submitForm submits the form.
+// jsonWrapper returns the wrapper function for the JSON formatter.
+func (l *Layout) submitForm() js.Func {
+	jsonFunc := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		fmt.Printf("input args %v\n", args)
+		go func() {
+			fmt.Printf("calling the endpoint\n")
+			// call the /ping endpoint with the form data
+			// the response has to be logged to the console
+			resp, err := http.Get("/ping")
+			if err != nil {
+				js.Global().Get("alert").Invoke(fmt.Sprintf("unable to call the endpoint. Error %s occurred\n", err))
+			}
+			fmt.Printf("Invoking the resolved function with the response: %v\n", resp)
+		}()
+		return nil
+	})
+	return jsonFunc
 }
