@@ -1,14 +1,20 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	err := http.ListenAndServe(":9090", http.FileServer(http.Dir("../../assets")))
-	if err != nil {
-		fmt.Println("Failed to start server", err)
-		return
-	}
+	r := gin.Default()
+	r.Static("/assets", "../../assets")
+	r.LoadHTMLGlob("../../assets/*.html")
+	r.GET("/", func(c *gin.Context) {
+		c.HTML(200, "index.html", gin.H{})
+	})
+	r.GET("/ping", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"message": "pong",
+		})
+	})
+	r.Run(":9090")
 }
