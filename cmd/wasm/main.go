@@ -7,11 +7,11 @@ import (
 	"fmt"
 
 	"github.com/akosgarai/wasm-example/pkg/application/client"
-	"github.com/akosgarai/wasm-example/pkg/page/formatter"
+	"github.com/akosgarai/wasm-example/pkg/page/layout"
 )
 
 func main() {
 	fmt.Println("WASM Go Initialized")
-	clientApp := client.New(formatter.New("JSON Formatter"))
+	clientApp := client.New(layout.New("JSON Formatter"))
 	clientApp.Run()
 }

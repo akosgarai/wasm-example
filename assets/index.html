@@ -3,6 +3,7 @@
 		<meta charset="utf-8"/>
 		<script src="wasm_exec.js"></script>
 		<title>Default title</title>
+		<link rel="stylesheet" href="page.css">
 		<script>
 			const go = new Go();
 			WebAssembly.instantiateStreaming(fetch("json.wasm"), go.importObject).then((result) => {
