@@ -21,19 +21,28 @@ type Page interface {
 
 // Instance is a struct that implements the Page interface
 type Instance struct {
-	Title    string
-	document js.Value
+	Title     string
+	document  js.Value
+	webSocket js.Value
+	alert     js.Value
+	json      js.Value
 }
 
 // NewPage returns a new Instance
 func NewPage(title string) *Instance {
 	jsDoc := js.Global().Get("document")
+	webSocket := js.Global().Get("WebSocket")
+	alert := js.Global().Get("alert")
+	json := js.Global().Get("JSON")
 	if !jsDoc.Truthy() {
 		panic("document is not available")
 	}
 	return &Instance{
-		Title:    title,
-		document: jsDoc,
+		Title:     title,
+		document:  jsDoc,
+		webSocket: webSocket,
+		alert:     alert,
+		json:      json,
 	}
 }
 
@@ -64,6 +73,21 @@ func (p *Instance) Run() {
 // Document returns the document
 func (p *Instance) Document() js.Value {
 	return p.document
+}
+
+// WebSocket returns the websocket
+func (p *Instance) WebSocket() js.Value {
+	return p.webSocket
+}
+
+// Alert returns the alert
+func (p *Instance) Alert() js.Value {
+	return p.alert
+}
+
+// JSON returns the JSON
+func (p *Instance) JSON() js.Value {
+	return p.json
 }
 
 // CreateElement returns a new element.

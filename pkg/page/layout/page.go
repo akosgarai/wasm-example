@@ -1,14 +1,15 @@
 package layout
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"syscall/js"
 
 	"github.com/akosgarai/wasm-example/pkg/page"
+)
+
+const (
+	socketURL = "ws://localhost:9090/ws"
 )
 
 // Layout is the page for the layout.
@@ -132,22 +133,18 @@ func (l *Layout) submitForm() js.Func {
 				"project-runtime":     l.Document().Call("querySelector", "#project-runtime").Get("value").String(),
 				"project-database":    l.Document().Call("querySelector", "#project-database").Get("value").String(),
 			}
-			responseData, err := json.Marshal(projectData)
-			if err != nil {
-				js.Global().Get("alert").Invoke(fmt.Sprintf("unable to setup the request data. Error %s occurred\n", err))
-				return
-			}
-			resp, err := http.Post("/project/create", "application/json", bytes.NewBuffer(responseData))
-			if err != nil {
-				js.Global().Get("alert").Invoke(fmt.Sprintf("unable to call the endpoint. Error %s occurred\n", err))
-				return
-			}
-			body, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				js.Global().Get("alert").Invoke(fmt.Sprintf("unable to process the response. Error %s occurred\n", err))
-				return
-			}
-			fmt.Printf("Invoking the resolved function with the response body: %s\n", body)
+			socket := l.WebSocket().New(socketURL)
+
+			socket.Call("addEventListener", "open", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+				fmt.Println("open")
+				jsonStr, err := json.Marshal(projectData)
+				if err != nil {
+					fmt.Println(err)
+				}
+
+				socket.Call("send", string(jsonStr))
+				return nil
+			}))
 		}()
 		return nil
 	})

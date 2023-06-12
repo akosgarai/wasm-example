@@ -17,6 +17,9 @@ func main() {
 			"message": "pong",
 		})
 	})
+	r.GET("/ws", func(c *gin.Context) {
+		controller.WsHandler(c.Writer, c.Request)
+	})
 	r.POST("/project/create", controller.CreateProject)
 	r.Run(":9090")
 }
