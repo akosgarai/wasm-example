@@ -85,10 +85,10 @@ func New(title string) *Layout {
 func (l *Layout) LoadPage() {
 	l.Instance.LoadPage()
 	container := l.Document().Call("querySelector", "."+page.ContentClassName)
-	inputContainer := l.CreateElement("div", map[string]interface{}{
+	inputContainer := dom.CreateElement(l.Document(), "div", map[string]interface{}{
 		"className": "row",
 	})
-	form := l.CreateElement("form", map[string]interface{}{
+	form := dom.CreateElement(l.Document(), "form", map[string]interface{}{
 		"id": "project-form",
 	})
 	container.Call("appendChild", form)
@@ -96,7 +96,7 @@ func (l *Layout) LoadPage() {
 	for _, item := range formItems {
 		inputContainer.Call("appendChild", l.buildFormItem(item.Tag, item.Attributes))
 	}
-	submitContainer := l.CreateElement("div", map[string]interface{}{
+	submitContainer := dom.CreateElement(l.Document(), "div", map[string]interface{}{
 		"className": "row submit",
 	})
 	submit := l.buildFormItem("input", map[string]interface{}{
@@ -125,11 +125,11 @@ func (l *Layout) buildFormItem(tag string, attributes map[string]interface{}) js
 	if tag == "select" {
 		return l.buildSelectFormItem(attributes)
 	}
-	element := l.CreateElement(tag, attributes)
-	itemContainer := l.CreateElement("div", map[string]interface{}{"className": "form-item", "id": attributes["id"].(string) + "-container"})
+	element := dom.CreateElement(l.Document(), tag, attributes)
+	itemContainer := dom.CreateElement(l.Document(), "div", map[string]interface{}{"className": "form-item", "id": attributes["id"].(string) + "-container"})
 	// if we have label, we have to create it and append it to the itemContainer
 	if attributes["label"] != nil {
-		label := l.CreateElement("label", map[string]interface{}{
+		label := dom.CreateElement(l.Document(), "label", map[string]interface{}{
 			"htmlFor":   attributes["id"],
 			"innerText": attributes["label"],
 		})
@@ -137,7 +137,7 @@ func (l *Layout) buildFormItem(tag string, attributes map[string]interface{}) js
 	}
 	itemContainer.Call("appendChild", element)
 	// add the error message container
-	errorMessageContainer := l.CreateElement("div", map[string]interface{}{"className": "error-message", "id": attributes["id"].(string) + "-error-message"})
+	errorMessageContainer := dom.CreateElement(l.Document(), "div", map[string]interface{}{"className": "error-message", "id": attributes["id"].(string) + "-error-message"})
 	itemContainer.Call("appendChild", errorMessageContainer)
 	return itemContainer
 }
@@ -216,7 +216,7 @@ func (l *Layout) addErrors(errorMapInterface map[string]interface{}) {
 			errorMap := errorMapInterface[attrID].([]interface{})
 			errorMessageContainer := l.Document().Call("querySelector", "#"+attrID+"-error-message")
 			for _, message := range errorMap {
-				msgParagraph := l.CreateElement("p", map[string]interface{}{
+				msgParagraph := dom.CreateElement(l.Document(), "p", map[string]interface{}{
 					"innerText": message.(string),
 				})
 				errorMessageContainer.Call("appendChild", msgParagraph)
@@ -230,10 +230,10 @@ func (l *Layout) buildSelectFormItem(attributes map[string]interface{}) js.Value
 	id := attributes["id"].(string)
 	options := attributes["options"].(map[string]string)
 	selector := dom.SimpleSelect(l.Document(), options, id, "")
-	itemContainer := l.CreateElement("div", map[string]interface{}{"className": "form-item", "id": attributes["id"].(string) + "-container"})
+	itemContainer := dom.CreateElement(l.Document(), "div", map[string]interface{}{"className": "form-item", "id": attributes["id"].(string) + "-container"})
 	// if we have label, we have to create it and append it to the itemContainer
 	if attributes["label"] != nil {
-		label := l.CreateElement("label", map[string]interface{}{
+		label := dom.CreateElement(l.Document(), "label", map[string]interface{}{
 			"htmlFor":   attributes["id"],
 			"innerText": attributes["label"],
 		})
@@ -241,7 +241,7 @@ func (l *Layout) buildSelectFormItem(attributes map[string]interface{}) js.Value
 	}
 	itemContainer.Call("appendChild", selector)
 	// add the error message container
-	errorMessageContainer := l.CreateElement("div", map[string]interface{}{"className": "error-message", "id": attributes["id"].(string) + "-error-message"})
+	errorMessageContainer := dom.CreateElement(l.Document(), "div", map[string]interface{}{"className": "error-message", "id": attributes["id"].(string) + "-error-message"})
 	itemContainer.Call("appendChild", errorMessageContainer)
 	return itemContainer
 }
