@@ -56,6 +56,7 @@ var formItems = []formItem{
 		"type":  "simple",
 		"label": "Project runtime",
 		"options": map[string]string{
+			"":         " - ",
 			"NoPHP":    "NoPHP",
 			"PHP71FPM": "PHP71FPM",
 			"PHP74FPM": "PHP74FPM",
@@ -68,6 +69,7 @@ var formItems = []formItem{
 		"type":  "simple",
 		"label": "Project database",
 		"options": map[string]string{
+			"":      " - ",
 			"no":    "no",
 			"mysql": "mysql",
 		},
