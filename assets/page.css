@@ -42,6 +42,19 @@
 	color: red;
 	font-size: 1.2rem;
 }
+.simple-select-wrapper {
+	position: relative;
+	display: flex;
+	flex-direction: row;
+	width: 100%;
+}
+.simple-select-wrapper input {
+	width: 100%;
+}
+
+.hidden {
+	display: none;
+}
 
 /* Media queries */
 @media (max-width: 539px) {
@@ -55,4 +68,3 @@
 		width: 100%;
 	}
 }
-```

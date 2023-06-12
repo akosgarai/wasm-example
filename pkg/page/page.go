@@ -2,6 +2,8 @@ package page
 
 import (
 	"syscall/js"
+
+	"github.com/akosgarai/wasm-example/pkg/client/dom"
 )
 
 const (
@@ -92,11 +94,29 @@ func (p *Instance) JSON() js.Value {
 
 // CreateElement returns a new element.
 func (p *Instance) CreateElement(tagName string, attrs map[string]interface{}) js.Value {
-	element := p.Document().Call("createElement", tagName)
-	for key, value := range attrs {
-		element.Set(key, value)
+	return dom.CreateElement(p.document, tagName, attrs)
+}
+
+// CreateSelectElement returns a new dynamic select element.
+// The first input parameter is the container element.
+// The second input parameter is the map of the options.
+// The third input parameter is the selected value.
+func (p *Instance) CreateSelectElement(container js.Value, options map[string]string, selected string) js.Value {
+	selectElement := p.CreateElement("select", map[string]interface{}{
+		"className": "form-control",
+	})
+	for key, value := range options {
+		optionElement := p.CreateElement("option", map[string]interface{}{
+			"value": key,
+		})
+		if key == selected {
+			optionElement.Set("selected", true)
+		}
+		optionElement.Set("innerHTML", value)
+		selectElement.Call("appendChild", optionElement)
 	}
-	return element
+	container.Call("appendChild", selectElement)
+	return selectElement
 }
 
 // buildLayout builds the layout of the page.

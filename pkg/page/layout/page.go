@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"syscall/js"
 
+	"github.com/akosgarai/wasm-example/pkg/client/dom"
 	"github.com/akosgarai/wasm-example/pkg/page"
 )
 
@@ -57,13 +58,17 @@ var formItems = []formItem{
 		"title":       "Options: NoPHP, PHP71FPM, PHP74FPM, PHP81FPM",
 		"label":       "Project runtime",
 	}},
-	{"input", map[string]interface{}{
+	{"select", map[string]interface{}{
 		"id":          "project-database",
 		"name":        "project-database",
-		"type":        "text",
+		"type":        "simple",
 		"placeholder": "no, mysql",
 		"title":       "Options: no, mysql",
 		"label":       "Project database",
+		"options": map[string]string{
+			"no":    "no",
+			"mysql": "mysql",
+		},
 	}},
 }
 
@@ -115,6 +120,9 @@ func (l *Layout) Run() {
 
 // buildFormItem returns a form item.
 func (l *Layout) buildFormItem(tag string, attributes map[string]interface{}) js.Value {
+	if tag == "select" {
+		return l.buildSelectFormItem(attributes)
+	}
 	element := l.CreateElement(tag, attributes)
 	itemContainer := l.CreateElement("div", map[string]interface{}{"className": "form-item", "id": attributes["id"].(string) + "-container"})
 	// if we have label, we have to create it and append it to the itemContainer
@@ -213,4 +221,25 @@ func (l *Layout) addErrors(errorMapInterface map[string]interface{}) {
 			}
 		}
 	}
+}
+
+// buildSelectFormItem returns a select form item.
+func (l *Layout) buildSelectFormItem(attributes map[string]interface{}) js.Value {
+	id := attributes["id"].(string)
+	options := attributes["options"].(map[string]string)
+	selector := dom.SimpleSelect(l.Document(), options, id, "")
+	itemContainer := l.CreateElement("div", map[string]interface{}{"className": "form-item", "id": attributes["id"].(string) + "-container"})
+	// if we have label, we have to create it and append it to the itemContainer
+	if attributes["label"] != nil {
+		label := l.CreateElement("label", map[string]interface{}{
+			"htmlFor":   attributes["id"],
+			"innerText": attributes["label"],
+		})
+		itemContainer.Call("appendChild", label)
+	}
+	itemContainer.Call("appendChild", selector)
+	// add the error message container
+	errorMessageContainer := l.CreateElement("div", map[string]interface{}{"className": "error-message", "id": attributes["id"].(string) + "-error-message"})
+	itemContainer.Call("appendChild", errorMessageContainer)
+	return itemContainer
 }
