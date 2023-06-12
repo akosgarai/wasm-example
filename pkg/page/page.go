@@ -140,4 +140,10 @@ func (p *Instance) buildLayout() {
 		"className": ContentClassName,
 	})
 	containerDiv.Call("appendChild", contentDiv)
+	// overlay div
+	overlayDiv := p.CreateElement("div", map[string]interface{}{
+		"id":        "overlay",
+		"className": "overlay hidden",
+	})
+	body.Call("appendChild", overlayDiv)
 }

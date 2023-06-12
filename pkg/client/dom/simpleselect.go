@@ -35,6 +35,17 @@ func SimpleSelect(document js.Value, options map[string]string, inputName, selec
 	button.Set("onclick", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		// Toggle the optionsWrapper
 		optionsWrapper.Get("classList").Call("toggle", "hidden")
+		// Toggle the overlay
+		overlay := document.Call("getElementById", "overlay")
+		overlay.Get("classList").Call("toggle", "hidden")
+		// add click event listener to the overlay to hide the optionsWrapper
+		overlay.Set("onclick", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			// Hide the optionsWrapper
+			optionsWrapper.Get("classList").Call("add", "hidden")
+			// Hide the overlay
+			overlay.Get("classList").Call("add", "hidden")
+			return nil
+		}))
 		return nil
 	}))
 	selectorWrapper.Call("appendChild", button)
@@ -63,6 +74,9 @@ func SimpleSelect(document js.Value, options map[string]string, inputName, selec
 			this.Get("classList").Call("add", "selected")
 			// Hide the optionsWrapper
 			optionsWrapper.Get("classList").Call("add", "hidden")
+			// Hide the overlay
+			overlay := document.Call("getElementById", "overlay")
+			overlay.Get("classList").Call("add", "hidden")
 			return nil
 		}))
 		optionsWrapper.Call("appendChild", optionElement)
