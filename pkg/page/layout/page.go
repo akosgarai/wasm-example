@@ -1,6 +1,8 @@
 package layout
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -31,10 +33,13 @@ func (l *Layout) LoadPage() {
 	l.Instance.LoadPage()
 	container := l.Document().Call("querySelector", "."+page.ContentClassName)
 	formContainer := l.CreateElement("div", map[string]interface{}{
-		"id":        "form-container",
 		"className": "row",
 	})
 	container.Call("appendChild", formContainer)
+	form := l.CreateElement("form", map[string]interface{}{
+		"id": "project-form",
+	})
+	formContainer.Call("appendChild", form)
 	// map: form name -> map: form tag -> form item
 	formItems := []formItem{
 		{"input", map[string]interface{}{
@@ -86,9 +91,9 @@ func (l *Layout) LoadPage() {
 		}},
 	}
 	for _, item := range formItems {
-		formContainer.Call("appendChild", l.buildFormItem(item.Tag, item.Attributes))
+		form.Call("appendChild", l.buildFormItem(item.Tag, item.Attributes))
 	}
-	submit := formContainer.Call("querySelector", "#submit")
+	submit := form.Call("querySelector", "#submit")
 	submit.Set("onclick", l.submitForm().Call("bind", submit))
 }
 
@@ -120,7 +125,19 @@ func (l *Layout) submitForm() js.Func {
 		go func() {
 			// call the /ping endpoint with the form data
 			// the response has to be logged to the console
-			resp, err := http.Get("/ping")
+			projectData := map[string]string{
+				"project-name":        l.Document().Call("querySelector", "#project-name").Get("value").String(),
+				"project-client":      l.Document().Call("querySelector", "#project-client").Get("value").String(),
+				"project-owner-email": l.Document().Call("querySelector", "#project-owner-email").Get("value").String(),
+				"project-runtime":     l.Document().Call("querySelector", "#project-runtime").Get("value").String(),
+				"project-database":    l.Document().Call("querySelector", "#project-database").Get("value").String(),
+			}
+			responseData, err := json.Marshal(projectData)
+			if err != nil {
+				js.Global().Get("alert").Invoke(fmt.Sprintf("unable to setup the request data. Error %s occurred\n", err))
+				return
+			}
+			resp, err := http.Post("/project/create", "application/json", bytes.NewBuffer(responseData))
 			if err != nil {
 				js.Global().Get("alert").Invoke(fmt.Sprintf("unable to call the endpoint. Error %s occurred\n", err))
 				return
