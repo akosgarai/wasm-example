@@ -40,13 +40,31 @@ func SimpleSelect(document js.Value, options map[string]string, inputName, selec
 	selectorWrapper.Call("appendChild", button)
 	// Add the select options to the selectorWrapper
 	for key, value := range options {
+		className := "simple-select-option"
+		if key == selected {
+			className += " selected"
+		}
 		optionElement := CreateElement(document, "div", map[string]interface{}{
-			"className": "simple-select-option",
+			"className": className,
 		})
 		optionElement.Set("innerHTML", value)
-		optionElement.Set("dataset", map[string]interface{}{
-			"value": key,
-		})
+		optionElement.Get("dataset").Set("value", key)
+		optionElement.Set("onclick", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			// Set the value of the hidden input element
+			hiddenInput.Set("value", this.Get("dataset").Get("value"))
+			// Set the value of the readonly text input element
+			readonlyInput.Set("value", this.Get("innerHTML"))
+			// Remove the selected class from all the options
+			selected := selectorWrapper.Call("querySelector", ".selected")
+			if selected.Truthy() {
+				selected.Get("classList").Call("remove", "selected")
+			}
+			// Add the selected class to the clicked option
+			this.Get("classList").Call("add", "selected")
+			// Hide the optionsWrapper
+			optionsWrapper.Get("classList").Call("add", "hidden")
+			return nil
+		}))
 		optionsWrapper.Call("appendChild", optionElement)
 	}
 	selectorWrapper.Call("appendChild", optionsWrapper)

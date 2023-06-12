@@ -73,6 +73,10 @@
 .simple-select-option:hover {
 	background-color: #ccc;
 }
+.simple-select-option.selected {
+	font-weight: bold;
+	border-left: 3px solid #000;
+}
 
 /* Media queries */
 @media (max-width: 539px) {
