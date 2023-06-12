@@ -12,6 +12,6 @@ import (
 
 func main() {
 	fmt.Println("WASM Go Initialized")
-	clientApp := client.New(layout.New("JSON Formatter"))
+	clientApp := client.New(layout.New("Project creator"))
 	clientApp.Run()
 }

@@ -11,7 +11,48 @@
 	margin: 1rem;
 }
 .content {
+	margin: 1rem;
+}
+.row {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	gap: 0.5rem;
+}
+.row.submit {
+	justify-content: center;
+}
+.form-item {
+	display: flex;
+	flex-direction: column;
+	width: 250px;
+	margin-bottom: 1rem;
+}
+.form-item label {
+	margin-bottom: 0.5rem;
+	font-weight: bold;
+	font-size: 1.4rem;
+}
+.form-item input {
+	padding: 0.5rem;
+	font-size: 1rem;
 }
 .error-message p {
 	color: red;
+	font-size: 1.2rem;
 }
+
+/* Media queries */
+@media (max-width: 539px) {
+	.row {
+		flex-direction: column;
+	}
+	.row.submit {
+		justify-content: flex-start;
+	}
+	.form-item {
+		width: 100%;
+	}
+}
+```

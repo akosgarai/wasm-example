@@ -65,13 +65,6 @@ var formItems = []formItem{
 		"title":       "Options: no, mysql",
 		"label":       "Project database",
 	}},
-	{"input", map[string]interface{}{
-		"id":    "submit",
-		"name":  "submit",
-		"type":  "button",
-		"title": "Submit",
-		"value": "Submit",
-	}},
 }
 
 // New returns a new Layout
@@ -85,19 +78,30 @@ func New(title string) *Layout {
 func (l *Layout) LoadPage() {
 	l.Instance.LoadPage()
 	container := l.Document().Call("querySelector", "."+page.ContentClassName)
-	formContainer := l.CreateElement("div", map[string]interface{}{
+	inputContainer := l.CreateElement("div", map[string]interface{}{
 		"className": "row",
 	})
-	container.Call("appendChild", formContainer)
 	form := l.CreateElement("form", map[string]interface{}{
 		"id": "project-form",
 	})
-	formContainer.Call("appendChild", form)
+	container.Call("appendChild", form)
+	form.Call("appendChild", inputContainer)
 	for _, item := range formItems {
-		form.Call("appendChild", l.buildFormItem(item.Tag, item.Attributes))
+		inputContainer.Call("appendChild", l.buildFormItem(item.Tag, item.Attributes))
 	}
-	submit := form.Call("querySelector", "#submit")
+	submitContainer := l.CreateElement("div", map[string]interface{}{
+		"className": "row submit",
+	})
+	submit := l.buildFormItem("input", map[string]interface{}{
+		"id":    "submit",
+		"name":  "submit",
+		"type":  "button",
+		"title": "Submit",
+		"value": "Submit",
+	})
 	submit.Set("onclick", l.submitForm().Call("bind", submit))
+	submitContainer.Call("appendChild", submit)
+	form.Call("appendChild", submitContainer)
 
 	// create the socket
 	l.socket = l.WebSocket().New(socketURL)
