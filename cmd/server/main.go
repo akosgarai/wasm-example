@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/akosgarai/wasm-example/pkg/server/controller"
 	"github.com/gin-gonic/gin"
 )
 
@@ -16,5 +17,6 @@ func main() {
 			"message": "pong",
 		})
 	})
+	r.POST("/project/create", controller.CreateProject)
 	r.Run(":9090")
 }
