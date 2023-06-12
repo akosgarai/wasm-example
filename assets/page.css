@@ -12,3 +12,6 @@
 }
 .content {
 }
+.error-message p {
+	color: red;
+}

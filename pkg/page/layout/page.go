@@ -23,6 +23,57 @@ type formItem struct {
 	Attributes map[string]interface{}
 }
 
+// map: form name -> map: form tag -> form item
+var formItems = []formItem{
+	{"input", map[string]interface{}{
+		"id":          "project-client",
+		"name":        "project-client",
+		"type":        "text",
+		"placeholder": "[a-z0-9-]",
+		"title":       "Project client [a-z0-9-]",
+		"label":       "Project client",
+	}},
+	{"input", map[string]interface{}{
+		"id":          "project-name",
+		"name":        "project-name",
+		"type":        "text",
+		"placeholder": "[a-z0-9-]",
+		"title":       "Project name [a-z0-9-]",
+		"label":       "Project name",
+	}},
+	{"input", map[string]interface{}{
+		"id":          "project-owner-email",
+		"name":        "project-owner-email",
+		"type":        "email",
+		"placeholder": "example@email.com",
+		"label":       "Project owner email",
+		"value":       "example@email.com",
+	}},
+	{"input", map[string]interface{}{
+		"id":          "project-runtime",
+		"name":        "project-runtime",
+		"type":        "text",
+		"placeholder": "NoPHP, PHP71FPM, PHP74FPM, PHP81FPM",
+		"title":       "Options: NoPHP, PHP71FPM, PHP74FPM, PHP81FPM",
+		"label":       "Project runtime",
+	}},
+	{"input", map[string]interface{}{
+		"id":          "project-database",
+		"name":        "project-database",
+		"type":        "text",
+		"placeholder": "no, mysql",
+		"title":       "Options: no, mysql",
+		"label":       "Project database",
+	}},
+	{"input", map[string]interface{}{
+		"id":    "submit",
+		"name":  "submit",
+		"type":  "button",
+		"title": "Submit",
+		"value": "Submit",
+	}},
+}
+
 // New returns a new Layout
 func New(title string) *Layout {
 	return &Layout{
@@ -42,56 +93,6 @@ func (l *Layout) LoadPage() {
 		"id": "project-form",
 	})
 	formContainer.Call("appendChild", form)
-	// map: form name -> map: form tag -> form item
-	formItems := []formItem{
-		{"input", map[string]interface{}{
-			"id":          "project-client",
-			"name":        "project-client",
-			"type":        "text",
-			"placeholder": "[a-z0-9-]",
-			"title":       "Project client [a-z0-9-]",
-			"label":       "Project client",
-		}},
-		{"input", map[string]interface{}{
-			"id":          "project-name",
-			"name":        "project-name",
-			"type":        "text",
-			"placeholder": "[a-z0-9-]",
-			"title":       "Project name [a-z0-9-]",
-			"label":       "Project name",
-		}},
-		{"input", map[string]interface{}{
-			"id":          "project-owner-email",
-			"name":        "project-owner-email",
-			"type":        "email",
-			"placeholder": "example@email.com",
-			"label":       "Project owner email",
-			"value":       "example@email.com",
-		}},
-		{"input", map[string]interface{}{
-			"id":          "project-runtime",
-			"name":        "project-runtime",
-			"type":        "text",
-			"placeholder": "NoPHP, PHP71FPM, PHP74FPM, PHP81FPM",
-			"title":       "Options: NoPHP, PHP71FPM, PHP74FPM, PHP81FPM",
-			"label":       "Project runtime",
-		}},
-		{"input", map[string]interface{}{
-			"id":          "project-database",
-			"name":        "project-database",
-			"type":        "text",
-			"placeholder": "no, mysql",
-			"title":       "Options: no, mysql",
-			"label":       "Project database",
-		}},
-		{"input", map[string]interface{}{
-			"id":    "submit",
-			"name":  "submit",
-			"type":  "button",
-			"title": "Submit",
-			"value": "Submit",
-		}},
-	}
 	for _, item := range formItems {
 		form.Call("appendChild", l.buildFormItem(item.Tag, item.Attributes))
 	}
@@ -111,7 +112,7 @@ func (l *Layout) Run() {
 // buildFormItem returns a form item.
 func (l *Layout) buildFormItem(tag string, attributes map[string]interface{}) js.Value {
 	element := l.CreateElement(tag, attributes)
-	itemContainer := l.CreateElement("div", map[string]interface{}{"className": "form-item"})
+	itemContainer := l.CreateElement("div", map[string]interface{}{"className": "form-item", "id": attributes["id"].(string) + "-container"})
 	// if we have label, we have to create it and append it to the itemContainer
 	if attributes["label"] != nil {
 		label := l.CreateElement("label", map[string]interface{}{
@@ -121,6 +122,9 @@ func (l *Layout) buildFormItem(tag string, attributes map[string]interface{}) js
 		itemContainer.Call("appendChild", label)
 	}
 	itemContainer.Call("appendChild", element)
+	// add the error message container
+	errorMessageContainer := l.CreateElement("div", map[string]interface{}{"className": "error-message", "id": attributes["id"].(string) + "-error-message"})
+	itemContainer.Call("appendChild", errorMessageContainer)
 	return itemContainer
 }
 
@@ -143,7 +147,7 @@ func (l *Layout) submitForm() js.Func {
 			if err != nil {
 				fmt.Println(err)
 			}
-
+			l.clearErrorMessages()
 			l.socket.Call("send", string(jsonStr))
 		}()
 		return nil
@@ -165,7 +169,21 @@ func (l *Layout) socketMessage() js.Func {
 			}
 			// if the response has the "Error" key, the error has to be logged to the console
 			if responseMap["Error"] != nil {
-				l.Alert().Invoke(fmt.Sprintf("Error response: %+v", responseMap["Error"]))
+				// write the error message to their containers
+				errorMapInterface := responseMap["Error"].(map[string]interface{})
+				for _, item := range formItems {
+					attrID := item.Attributes["id"].(string)
+					if errorMapInterface[attrID] != nil {
+						errorMap := errorMapInterface[attrID].([]interface{})
+						errorMessageContainer := l.Document().Call("querySelector", "#"+attrID+"-error-message")
+						for _, message := range errorMap {
+							msgParagraph := l.CreateElement("p", map[string]interface{}{
+								"innerText": message.(string),
+							})
+							errorMessageContainer.Call("appendChild", msgParagraph)
+						}
+					}
+				}
 				return
 			}
 			// if the response has the "Data" key,
@@ -179,4 +197,12 @@ func (l *Layout) socketMessage() js.Func {
 		return nil
 	})
 	return jsonFunc
+}
+
+// clear error messages removes the current error messages.
+func (l *Layout) clearErrorMessages() {
+	for _, item := range formItems {
+		errorMessageContainer := l.Document().Call("querySelector", "#"+item.Attributes["id"].(string)+"-error-message")
+		errorMessageContainer.Set("innerText", "")
+	}
 }
