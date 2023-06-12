@@ -15,6 +15,7 @@ const (
 // Layout is the page for the layout.
 type Layout struct {
 	*page.Instance
+	socket js.Value
 }
 
 type formItem struct {
@@ -96,6 +97,10 @@ func (l *Layout) LoadPage() {
 	}
 	submit := form.Call("querySelector", "#submit")
 	submit.Set("onclick", l.submitForm().Call("bind", submit))
+
+	// create the socket
+	l.socket = l.WebSocket().New(socketURL)
+	l.socket.Set("onmessage", l.socketMessage())
 }
 
 // Run runs the formatter page.
@@ -133,18 +138,24 @@ func (l *Layout) submitForm() js.Func {
 				"project-runtime":     l.Document().Call("querySelector", "#project-runtime").Get("value").String(),
 				"project-database":    l.Document().Call("querySelector", "#project-database").Get("value").String(),
 			}
-			socket := l.WebSocket().New(socketURL)
+			jsonStr, err := json.Marshal(projectData)
+			if err != nil {
+				fmt.Println(err)
+			}
 
-			socket.Call("addEventListener", "open", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-				fmt.Println("open")
-				jsonStr, err := json.Marshal(projectData)
-				if err != nil {
-					fmt.Println(err)
-				}
+			l.socket.Call("send", string(jsonStr))
+		}()
+		return nil
+	})
+	return jsonFunc
+}
 
-				socket.Call("send", string(jsonStr))
-				return nil
-			}))
+// socketMessage returns the wrapper function for the socket message.
+func (l *Layout) socketMessage() js.Func {
+	jsonFunc := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		go func() {
+			// the response has to be logged to the console
+			fmt.Println(args[0].Get("data").String())
 		}()
 		return nil
 	})
