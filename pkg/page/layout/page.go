@@ -170,20 +170,7 @@ func (l *Layout) socketMessage() js.Func {
 			// if the response has the "Error" key, the error has to be logged to the console
 			if responseMap["Error"] != nil {
 				// write the error message to their containers
-				errorMapInterface := responseMap["Error"].(map[string]interface{})
-				for _, item := range formItems {
-					attrID := item.Attributes["id"].(string)
-					if errorMapInterface[attrID] != nil {
-						errorMap := errorMapInterface[attrID].([]interface{})
-						errorMessageContainer := l.Document().Call("querySelector", "#"+attrID+"-error-message")
-						for _, message := range errorMap {
-							msgParagraph := l.CreateElement("p", map[string]interface{}{
-								"innerText": message.(string),
-							})
-							errorMessageContainer.Call("appendChild", msgParagraph)
-						}
-					}
-				}
+				l.addErrors(responseMap["Error"].(map[string]interface{}))
 				return
 			}
 			// if the response has the "Data" key,
@@ -204,5 +191,22 @@ func (l *Layout) clearErrorMessages() {
 	for _, item := range formItems {
 		errorMessageContainer := l.Document().Call("querySelector", "#"+item.Attributes["id"].(string)+"-error-message")
 		errorMessageContainer.Set("innerText", "")
+	}
+}
+
+// add errors adds the errors to the form.
+func (l *Layout) addErrors(errorMapInterface map[string]interface{}) {
+	for _, item := range formItems {
+		attrID := item.Attributes["id"].(string)
+		if errorMapInterface[attrID] != nil {
+			errorMap := errorMapInterface[attrID].([]interface{})
+			errorMessageContainer := l.Document().Call("querySelector", "#"+attrID+"-error-message")
+			for _, message := range errorMap {
+				msgParagraph := l.CreateElement("p", map[string]interface{}{
+					"innerText": message.(string),
+				})
+				errorMessageContainer.Call("appendChild", msgParagraph)
+			}
+		}
 	}
 }
