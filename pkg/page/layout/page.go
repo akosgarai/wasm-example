@@ -2,6 +2,7 @@ package layout
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"syscall/js"
 
@@ -116,16 +117,20 @@ func (l *Layout) buildFormItem(tag string, attributes map[string]interface{}) js
 // jsonWrapper returns the wrapper function for the JSON formatter.
 func (l *Layout) submitForm() js.Func {
 	jsonFunc := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		fmt.Printf("input args %v\n", args)
 		go func() {
-			fmt.Printf("calling the endpoint\n")
 			// call the /ping endpoint with the form data
 			// the response has to be logged to the console
 			resp, err := http.Get("/ping")
 			if err != nil {
 				js.Global().Get("alert").Invoke(fmt.Sprintf("unable to call the endpoint. Error %s occurred\n", err))
+				return
 			}
-			fmt.Printf("Invoking the resolved function with the response: %v\n", resp)
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				js.Global().Get("alert").Invoke(fmt.Sprintf("unable to process the response. Error %s occurred\n", err))
+				return
+			}
+			fmt.Printf("Invoking the resolved function with the response body: %s\n", body)
 		}()
 		return nil
 	})
