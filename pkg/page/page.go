@@ -92,56 +92,27 @@ func (p *Instance) JSON() js.Value {
 	return p.json
 }
 
-// CreateElement returns a new element.
-func (p *Instance) CreateElement(tagName string, attrs map[string]interface{}) js.Value {
-	return dom.CreateElement(p.document, tagName, attrs)
-}
-
-// CreateSelectElement returns a new dynamic select element.
-// The first input parameter is the container element.
-// The second input parameter is the map of the options.
-// The third input parameter is the selected value.
-func (p *Instance) CreateSelectElement(container js.Value, options map[string]string, selected string) js.Value {
-	selectElement := p.CreateElement("select", map[string]interface{}{
-		"className": "form-control",
-	})
-	for key, value := range options {
-		optionElement := p.CreateElement("option", map[string]interface{}{
-			"value": key,
-		})
-		if key == selected {
-			optionElement.Set("selected", true)
-		}
-		optionElement.Set("innerHTML", value)
-		selectElement.Call("appendChild", optionElement)
-	}
-	container.Call("appendChild", selectElement)
-	return selectElement
-}
-
 // buildLayout builds the layout of the page.
 func (p *Instance) buildLayout() {
 	body := p.document.Call("querySelector", "body")
 	// Contaner div with class container
-	containerDiv := p.CreateElement("div", map[string]interface{}{
+	containerDiv := dom.Div(p.document, map[string]interface{}{
 		"className": ContainerClassName,
 	})
 	body.Call("appendChild", containerDiv)
 	// Header div with class header
-	headerDiv := p.CreateElement("div", map[string]interface{}{
+	headerDiv := dom.Div(p.document, map[string]interface{}{
 		"className": HeaderClassName,
 	})
 	containerDiv.Call("appendChild", headerDiv)
 	// Header div constans a h1 with the title
-	headerDiv.Call("appendChild", p.CreateElement("h1", map[string]interface{}{
-		"innerHTML": p.Title,
-	}))
-	contentDiv := p.CreateElement("div", map[string]interface{}{
+	headerDiv.Call("appendChild", dom.H1(p.document, p.Title))
+	contentDiv := dom.Div(p.document, map[string]interface{}{
 		"className": ContentClassName,
 	})
 	containerDiv.Call("appendChild", contentDiv)
 	// overlay div
-	overlayDiv := p.CreateElement("div", map[string]interface{}{
+	overlayDiv := dom.Div(p.document, map[string]interface{}{
 		"id":        "overlay",
 		"className": "overlay hidden",
 	})

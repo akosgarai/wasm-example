@@ -6,30 +6,25 @@ import "syscall/js"
 // The document input parameter is the document.
 // The next input parameter is the map of options.
 func SimpleSelect(document js.Value, options map[string]string, inputName, selected string) js.Value {
-	selectorWrapper := CreateElement(document, "div", map[string]interface{}{
+	selectorWrapper := Div(document, map[string]interface{}{
 		"className": "simple-select-wrapper",
 	})
 	// Add the hidden input element to the selectorWrapper
-	hiddenInput := CreateElement(document, "input", map[string]interface{}{
-		"type": "hidden",
+	hiddenInput := Input(document, "hidden", map[string]interface{}{
 		"name": inputName,
 		"id":   inputName,
 	})
 	selectorWrapper.Call("appendChild", hiddenInput)
 	// The selected is displayed in a readonly text input and next to it is a button to open the select options.
 	// Add the readonly text input to the selectorWrapper
-	readonlyInput := CreateElement(document, "input", map[string]interface{}{
-		"type":     "text",
+	readonlyInput := Input(document, "text", map[string]interface{}{
 		"readOnly": "readonly",
 		"value":    options[selected],
 	})
 	selectorWrapper.Call("appendChild", readonlyInput)
 	// Add the button to the selectorWrapper
-	button := CreateElement(document, "button", map[string]interface{}{
-		"type":      "button",
-		"innerHTML": "Select",
-	})
-	optionsWrapper := CreateElement(document, "div", map[string]interface{}{
+	button := Button(document, "Select")
+	optionsWrapper := Div(document, map[string]interface{}{
 		"className": "simple-select-options-wrapper hidden",
 	})
 	button.Set("onclick", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
@@ -55,10 +50,10 @@ func SimpleSelect(document js.Value, options map[string]string, inputName, selec
 		if key == selected {
 			className += " selected"
 		}
-		optionElement := CreateElement(document, "div", map[string]interface{}{
+		optionElement := Div(document, map[string]interface{}{
 			"className": className,
+			"innerHTML": value,
 		})
-		optionElement.Set("innerHTML", value)
 		optionElement.Get("dataset").Set("value", key)
 		optionElement.Set("onclick", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			// Set the value of the hidden input element
