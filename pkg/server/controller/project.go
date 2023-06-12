@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -8,6 +9,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 )
+
+type response struct {
+	Error interface{}
+	Data  interface{}
+}
 
 var wsupgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
@@ -27,9 +33,35 @@ func WsHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			break
 		}
-		fmt.Printf("Message received: %+v\n", string(msg))
-		conn.WriteMessage(t, msg)
+		response := processMessage(msg)
+		marshalled, _ := json.Marshal(response)
+		conn.WriteMessage(t, marshalled)
 	}
+}
+
+func processMessage(msg []byte) response {
+	// msg is a json marshalled string, so we need to unmarshal it
+	// and use the data to create the project
+	var resp response
+	unmarshalled := &request.CreateProjectRequest{}
+	err := json.Unmarshal(msg, unmarshalled)
+	if err != nil {
+		errMsg := fmt.Sprintf("Failed to unmarshal json: %+v", err)
+		fmt.Printf(errMsg)
+		resp.Error = errMsg
+		return resp
+	}
+	// Data validation
+	validationErrors := unmarshalled.Validate()
+	if len(validationErrors) > 0 {
+		fmt.Printf("Validation errors: %+v", validationErrors)
+		resp.Error = validationErrors
+		return resp
+	}
+	// Do the process stuff right here.
+	// Now just return the message.
+	resp.Data = "Project created successfully."
+	return resp
 }
 
 // CreateProject is the handler function of the /project/create endpoint.

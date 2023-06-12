@@ -36,33 +36,40 @@ var (
 
 // CreateProjectRequest represents the request body of the /project/create endpoint.
 type CreateProjectRequest struct {
-	Name       string `json:"project-name"`
 	Client     string `json:"project-client"`
+	Command    string `json:"command"`
+	Database   string `json:"project-database"`
+	Name       string `json:"project-name"`
 	OwnerEmail string `json:"project-owner-email"`
 	Runtime    string `json:"project-runtime"`
-	Database   string `json:"project-database"`
 }
 
 // Validate is for the data validation.
 // It returns the array of the errors.
 // If the data is fine, it returns empty arra.
-func (r *CreateProjectRequest) Validate() []string {
-	var validationErrors []string
+func (r *CreateProjectRequest) Validate() map[string][]string {
+	validationErrorMap := make(map[string][]string)
 	// Name validation. It has to be 3-30 character long.
 	lenName := len(r.Name)
 	if lenName < 3 || lenName > 30 {
+		var validationErrors []string
 		validationErrors = append(validationErrors, "Invalid project name length: it has to be 3-30 char")
+		validationErrorMap["project-name"] = validationErrors
 	}
 	// Client validation, it has to be 3-30 character long.
 	lenClient := len(r.Client)
 	if lenClient < 3 || lenClient > 30 {
+		var validationErrors []string
 		validationErrors = append(validationErrors, "Invalid project client length: it has to be 3-30 char")
+		validationErrorMap["project-client"] = validationErrors
 	}
 	// Owner email validation.
 	// It has to be a valid email address format.
 	regexpEmail := regexp.MustCompile(EmailRegex)
 	if regexpEmail.MatchString(r.OwnerEmail) == false {
+		var validationErrors []string
 		validationErrors = append(validationErrors, "Invalid project owner email: "+r.OwnerEmail)
+		validationErrorMap["project-owner-email"] = validationErrors
 	}
 	// Runtime validation.
 	// It has to be one of the available runtime options.
@@ -74,7 +81,9 @@ func (r *CreateProjectRequest) Validate() []string {
 		}
 	}
 	if runtimeValid == false {
+		var validationErrors []string
 		validationErrors = append(validationErrors, "Invalid project runtime")
+		validationErrorMap["project-runtime"] = validationErrors
 	}
 	// Database validation.
 	// It has to be one of the available database options.
@@ -86,7 +95,9 @@ func (r *CreateProjectRequest) Validate() []string {
 		}
 	}
 	if databaseValid == false {
+		var validationErrors []string
 		validationErrors = append(validationErrors, "Invalid project database")
+		validationErrorMap["project-database"] = validationErrors
 	}
-	return validationErrors
+	return validationErrorMap
 }

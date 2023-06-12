@@ -132,6 +132,7 @@ func (l *Layout) submitForm() js.Func {
 			// call the /ping endpoint with the form data
 			// the response has to be logged to the console
 			projectData := map[string]string{
+				"command":             "create-project",
 				"project-name":        l.Document().Call("querySelector", "#project-name").Get("value").String(),
 				"project-client":      l.Document().Call("querySelector", "#project-client").Get("value").String(),
 				"project-owner-email": l.Document().Call("querySelector", "#project-owner-email").Get("value").String(),
@@ -154,8 +155,26 @@ func (l *Layout) submitForm() js.Func {
 func (l *Layout) socketMessage() js.Func {
 	jsonFunc := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		go func() {
+			// the response is a JSON string
+			response := args[0].Get("data").String()
+			// parse the JSON string
+			var responseMap map[string]interface{}
+			err := json.Unmarshal([]byte(response), &responseMap)
+			if err != nil {
+				l.Alert().Invoke(fmt.Sprintf("Error unmarshall the response. %s", err.Error()))
+			}
+			// if the response has the "Error" key, the error has to be logged to the console
+			if responseMap["Error"] != nil {
+				l.Alert().Invoke(fmt.Sprintf("Error response: %+v", responseMap["Error"]))
+				return
+			}
+			// if the response has the "Data" key,
+			if responseMap["Data"] == nil {
+				l.Alert().Invoke(fmt.Sprintf("No data in the response"))
+				return
+			}
 			// the response has to be logged to the console
-			fmt.Println(args[0].Get("data").String())
+			l.Alert().Invoke(fmt.Sprintf("Success response: %+v", responseMap["Data"]))
 		}()
 		return nil
 	})
