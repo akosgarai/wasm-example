@@ -156,6 +156,14 @@ func (l *Layout) buildFormItem(tag string, attributes map[string]interface{}) js
 func (l *Layout) submitForm() js.Func {
 	jsonFunc := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		go func() {
+			envStaging := "false"
+			if l.Document().Call("querySelector", "#env-staging").Get("checked").Bool() {
+				envStaging = "true"
+			}
+			envProduction := "false"
+			if l.Document().Call("querySelector", "#env-production").Get("checked").Bool() {
+				envProduction = "true"
+			}
 			// call the /ping endpoint with the form data
 			// the response has to be logged to the console
 			projectData := map[string]string{
@@ -165,6 +173,8 @@ func (l *Layout) submitForm() js.Func {
 				"project-owner-email": l.Document().Call("querySelector", "#project-owner-email").Get("value").String(),
 				"project-runtime":     l.Document().Call("querySelector", "#project-runtime").Get("value").String(),
 				"project-database":    l.Document().Call("querySelector", "#project-database").Get("value").String(),
+				"env-staging":         envStaging,
+				"env-production":      envProduction,
 			}
 			jsonStr, err := json.Marshal(projectData)
 			if err != nil {

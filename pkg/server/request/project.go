@@ -42,6 +42,8 @@ type CreateProjectRequest struct {
 	Name       string `json:"project-name"`
 	OwnerEmail string `json:"project-owner-email"`
 	Runtime    string `json:"project-runtime"`
+	Staging    string `json:"env-staging"`
+	Production string `json:"env-production"`
 }
 
 // Validate is for the data validation.
@@ -49,6 +51,13 @@ type CreateProjectRequest struct {
 // If the data is fine, it returns empty arra.
 func (r *CreateProjectRequest) Validate() map[string][]string {
 	validationErrorMap := make(map[string][]string)
+	// At least one environment has to be selected.
+	if r.Staging == "false" && r.Production == "false" {
+		var validationErrors []string
+		validationErrors = append(validationErrors, "At least one environment has to be selected")
+		validationErrorMap["env-staging"] = validationErrors
+		validationErrorMap["env-production"] = validationErrors
+	}
 	// Name validation. It has to be 3-30 character long.
 	lenName := len(r.Name)
 	if lenName < 3 || lenName > 30 {
