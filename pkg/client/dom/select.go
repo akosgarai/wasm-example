@@ -13,9 +13,11 @@ const (
 	// MainWrapperClassName is the class name for the main wrapper.
 	MainWrapperClassName = "select-wrapper"
 	// OptionsWrapperClassName is the class name for the options wrapper.
-	OptionsWrapperClassName = "select-options-wrapper hidden"
+	OptionsWrapperClassName = "select-options-wrapper"
 	// OptionClassName is the class name for an option.
 	OptionClassName = "select-option"
+	// OpenClassName is the class name for the open state.
+	OpenClassName = "open"
 )
 
 type selectBuilder struct {
@@ -85,6 +87,7 @@ func (b *selectBuilder) buildOptionsFromMap(document, optionsWrapper, hiddenInpu
 	}
 	if selected == "" {
 		notSelectedClassName += " selected"
+		displayInput.Set("value", "-")
 	}
 	// Add the not selected option to the optionsWrapper
 	notSelectedOption := Div(document, map[string]interface{}{
@@ -92,6 +95,8 @@ func (b *selectBuilder) buildOptionsFromMap(document, optionsWrapper, hiddenInpu
 		"innerHTML": "-",
 	})
 	notSelectedOption.Get("dataset").Set("value", "")
+	notSelectedOption.Set("onclick", optionElementOnClick(document, optionsWrapper, hiddenInput, displayInput))
+	optionsWrapper.Call("appendChild", notSelectedOption)
 	for _, value := range options {
 		className := OptionClassName
 		if b.prefix != "" {
@@ -105,25 +110,32 @@ func (b *selectBuilder) buildOptionsFromMap(document, optionsWrapper, hiddenInpu
 			"innerHTML": value,
 		})
 		optionElement.Get("dataset").Set("value", value)
-		optionElement.Set("onclick", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-			// Set the value of the hidden input element
-			hiddenInput.Set("value", this.Get("dataset").Get("value"))
-			// Set the value of the readonly text input element
-			displayInput.Set("value", this.Get("innerHTML"))
-			// Remove the selected class from all the options
-			selectedOption := optionsWrapper.Call("querySelector", ".selected")
-			if selectedOption.Truthy() {
-				selectedOption.Get("classList").Call("remove", "selected")
-			}
-			// Add the selected class to the clicked option
-			this.Get("classList").Call("add", "selected")
-			// Hide the optionsWrapper
-			optionsWrapper.Get("classList").Call("add", "hidden")
-			// Hide the overlay
-			overlay := document.Call("getElementById", "overlay")
-			overlay.Get("classList").Call("add", "hidden")
-			return nil
-		}))
+		optionElement.Set("onclick", optionElementOnClick(document, optionsWrapper, hiddenInput, displayInput))
 		optionsWrapper.Call("appendChild", optionElement)
 	}
+}
+
+// optionElementOnClick is the onclick handler for the option elements.
+func optionElementOnClick(document, optionsWrapper, hiddenInput, displayInput js.Value) js.Func {
+	return js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		// Set the value of the hidden input element
+		hiddenInput.Set("value", this.Get("dataset").Get("value"))
+		// Set the value of the readonly text input element
+		displayInput.Set("value", this.Get("innerHTML"))
+		// Remove the selected class from all the options
+		selectedOption := optionsWrapper.Call("querySelector", ".selected")
+		if selectedOption.Truthy() {
+			selectedOption.Get("classList").Call("remove", "selected")
+		}
+		// Add the selected class to the clicked option
+		this.Get("classList").Call("add", "selected")
+		// Hide the optionsWrapper
+		optionsWrapper.Get("parentNode").Get("classList").Call("remove", OpenClassName)
+		// Hide the overlay
+		overlay := document.Call("getElementById", "overlay")
+		if overlay.Truthy() {
+			overlay.Get("classList").Call("add", "hidden")
+		}
+		return nil
+	})
 }

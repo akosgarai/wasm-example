@@ -67,6 +67,10 @@
 	border: 1px solid #ccc;
 	border-top: none;
 	z-index: 2;
+	display: none;
+}
+.select-wrapper.open .select-options-wrapper {
+	display: block;
 }
 .select-option {
 	cursor: pointer;

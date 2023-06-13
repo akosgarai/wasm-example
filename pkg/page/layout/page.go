@@ -53,7 +53,7 @@ var formItems = []formItem{
 		"placeholder": "[a-z0-9-]",
 		"title":       "Project name [a-z0-9-]",
 		"label":       "Project name",
-		"apiUrl":      "/projects/",
+		"apiUrl":      "/options/projects/",
 	}},
 	{"input", map[string]interface{}{
 		"id":          "project-owner-email",
@@ -69,7 +69,6 @@ var formItems = []formItem{
 		"type":  "simple",
 		"label": "Project runtime",
 		"options": map[string]string{
-			"":         " - ",
 			"NoPHP":    "NoPHP",
 			"PHP71FPM": "PHP71FPM",
 			"PHP74FPM": "PHP74FPM",
@@ -82,7 +81,6 @@ var formItems = []formItem{
 		"type":  "simple",
 		"label": "Project database",
 		"options": map[string]string{
-			"":      " - ",
 			"no":    "no",
 			"mysql": "mysql",
 		},

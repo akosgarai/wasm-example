@@ -17,10 +17,13 @@ func main() {
 			"message": "pong",
 		})
 	})
-	r.GET("/projects", controller.ProjectNames)
-	r.GET("/projects/:query", controller.ProjectNames)
-	r.GET("/runtimes", controller.ProjectRuntimes)
-	r.GET("/databases", controller.ProjectDatabases)
+	options := r.Group("/options")
+	{
+		options.GET("/projects", controller.ProjectNames)
+		options.GET("/projects/:query", controller.ProjectNames)
+		options.GET("/runtimes", controller.ProjectRuntimes)
+		options.GET("/databases", controller.ProjectDatabases)
+	}
 	r.GET("/ws", func(c *gin.Context) {
 		controller.WsHandler(c.Writer, c.Request)
 	})
