@@ -6,27 +6,18 @@ import "syscall/js"
 // The document input parameter is the document.
 // The next input parameter is the map of options.
 func SimpleSelect(document js.Value, options map[string]string, inputName, selected string) js.Value {
-	selectorWrapper := Div(document, map[string]interface{}{
-		"className": "simple-select-wrapper",
-	})
+	builder := newSelectBuilder(document, "simple")
+	selectorWrapper := builder.wrapper()
 	// Add the hidden input element to the selectorWrapper
-	hiddenInput := Input(document, "hidden", map[string]interface{}{
-		"name": inputName,
-		"id":   inputName,
-	})
+	hiddenInput := builder.hiddenInput(inputName)
 	selectorWrapper.Call("appendChild", hiddenInput)
 	// The selected is displayed in a readonly text input and next to it is a button to open the select options.
 	// Add the readonly text input to the selectorWrapper
-	readonlyInput := Input(document, "text", map[string]interface{}{
-		"readOnly": "readonly",
-		"value":    options[selected],
-	})
+	readonlyInput := builder.displayInput(options[selected], true)
 	selectorWrapper.Call("appendChild", readonlyInput)
 	// Add the button to the selectorWrapper
 	button := Button(document, "Select")
-	optionsWrapper := Div(document, map[string]interface{}{
-		"className": "simple-select-options-wrapper hidden",
-	})
+	optionsWrapper := builder.optionsWrapper()
 	button.Set("onclick", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		// Toggle the optionsWrapper
 		optionsWrapper.Get("classList").Call("toggle", "hidden")
@@ -45,37 +36,7 @@ func SimpleSelect(document js.Value, options map[string]string, inputName, selec
 	}))
 	selectorWrapper.Call("appendChild", button)
 	// Add the select options to the selectorWrapper
-	for key, value := range options {
-		className := "simple-select-option"
-		if key == selected {
-			className += " selected"
-		}
-		optionElement := Div(document, map[string]interface{}{
-			"className": className,
-			"innerHTML": value,
-		})
-		optionElement.Get("dataset").Set("value", key)
-		optionElement.Set("onclick", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-			// Set the value of the hidden input element
-			hiddenInput.Set("value", this.Get("dataset").Get("value"))
-			// Set the value of the readonly text input element
-			readonlyInput.Set("value", this.Get("innerHTML"))
-			// Remove the selected class from all the options
-			selected := selectorWrapper.Call("querySelector", ".selected")
-			if selected.Truthy() {
-				selected.Get("classList").Call("remove", "selected")
-			}
-			// Add the selected class to the clicked option
-			this.Get("classList").Call("add", "selected")
-			// Hide the optionsWrapper
-			optionsWrapper.Get("classList").Call("add", "hidden")
-			// Hide the overlay
-			overlay := document.Call("getElementById", "overlay")
-			overlay.Get("classList").Call("add", "hidden")
-			return nil
-		}))
-		optionsWrapper.Call("appendChild", optionElement)
-	}
+	builder.buildOptionsFromMap(document, optionsWrapper, hiddenInput, readonlyInput, options, selected)
 	selectorWrapper.Call("appendChild", optionsWrapper)
 	return selectorWrapper
 }

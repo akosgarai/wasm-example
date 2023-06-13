@@ -45,20 +45,20 @@
 	color: red;
 	font-size: 1.2rem;
 }
-.simple-select-wrapper {
+.select-wrapper {
 	position: relative;
 	display: flex;
 	flex-direction: row;
 	width: 100%;
 }
-.simple-select-wrapper input {
+.select-wrapper input {
 	width: 100%;
 }
 
 .hidden {
 	display: none;
 }
-.simple-select-options-wrapper {
+.select-options-wrapper {
 	position: absolute;
 	top: 100%;
 	left: 0;
@@ -68,15 +68,15 @@
 	border-top: none;
 	z-index: 2;
 }
-.simple-select-option {
+.select-option {
 	cursor: pointer;
 	font-size: 1rem;
 	padding: 0.5rem;
 }
-.simple-select-option:hover {
+.select-option:hover {
 	background-color: #ccc;
 }
-.simple-select-option.selected {
+.select-option.selected {
 	font-weight: bold;
 	border-left: 3px solid #000;
 }

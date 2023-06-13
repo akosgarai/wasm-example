@@ -46,13 +46,14 @@ var formItems = []formItem{
 		"title":       "Project client [a-z0-9-]",
 		"label":       "Project client",
 	}},
-	{"input", map[string]interface{}{
+	{"select", map[string]interface{}{
 		"id":          "project-name",
 		"name":        "project-name",
-		"type":        "text",
+		"type":        "api",
 		"placeholder": "[a-z0-9-]",
 		"title":       "Project name [a-z0-9-]",
 		"label":       "Project name",
+		"apiUrl":      "/projects/",
 	}},
 	{"input", map[string]interface{}{
 		"id":          "project-owner-email",
@@ -245,8 +246,13 @@ func (l *Layout) addErrors(errorMapInterface map[string]interface{}) {
 // buildSelectFormItem returns a select form item.
 func (l *Layout) buildSelectFormItem(attributes map[string]interface{}) js.Value {
 	id := attributes["id"].(string)
-	options := attributes["options"].(map[string]string)
-	selector := dom.SimpleSelect(l.Document(), options, id, "")
+	var selector js.Value
+	if attributes["type"] == "api" {
+		selector = dom.APISelect(l.Document(), attributes["apiUrl"].(string), id, "")
+	} else if attributes["type"] == "simple" {
+		options := attributes["options"].(map[string]string)
+		selector = dom.SimpleSelect(l.Document(), options, id, "")
+	}
 	itemContainer := dom.Div(l.Document(), map[string]interface{}{"className": "form-item", "id": attributes["id"].(string) + "-container"})
 	// if we have label, we have to create it and append it to the itemContainer
 	if attributes["label"] != nil {

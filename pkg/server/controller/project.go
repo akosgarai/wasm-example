@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/akosgarai/wasm-example/pkg/server/request"
 	"github.com/gin-gonic/gin"
@@ -19,6 +20,12 @@ var wsupgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 }
+var (
+	// ProjectList is the list of the projects.
+	ProjectList = []string{"asd", "asf", "ass", "bobo", "cat", "mkp"}
+	// RuntimeList is the list of the possible runtimes
+	RuntimeList = []string{"NoPHP", "PHP71FPM", "PHP74FPM", "PHP81FPM"}
+)
 
 // WsHandler is the handler function of the /ws endpoint.
 func WsHandler(w http.ResponseWriter, r *http.Request) {
@@ -33,13 +40,13 @@ func WsHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			break
 		}
-		response := processMessage(msg)
+		response := processMessage(msg, conn)
 		marshalled, _ := json.Marshal(response)
 		conn.WriteMessage(t, marshalled)
 	}
 }
 
-func processMessage(msg []byte) response {
+func processMessage(msg []byte, conn *websocket.Conn) response {
 	// msg is a json marshalled string, so we need to unmarshal it
 	// and use the data to create the project
 	var resp response
@@ -64,28 +71,45 @@ func processMessage(msg []byte) response {
 	return resp
 }
 
-// CreateProject is the handler function of the /project/create endpoint.
-func CreateProject(c *gin.Context) {
-	req := &request.CreateProjectRequest{}
-	err := c.BindJSON(req)
-	if err != nil {
-		c.JSON(400, gin.H{
-			"error": err.Error(),
-		})
-		return
+// ProjectNames is the handler function of the /projects endpoint.
+// It returns the list of the projects for the select component.
+func ProjectNames(c *gin.Context) {
+	list := ProjectList
+	// if we have a query, we need to filter the list
+	query := c.Query("query")
+	if query != "" {
+		list = []string{}
+		for _, v := range ProjectList {
+			if strings.Contains(v, query) {
+				list = append(list, v)
+			}
+		}
 	}
-	validationErrors := req.Validate()
-	if len(validationErrors) > 0 {
-		c.JSON(400, gin.H{
-			"error": validationErrors,
-		})
-		return
-	}
-	// start the project creation in the background
-	// then return the connection to the websocket
-	// that will be used to send the progress
 	c.JSON(200, gin.H{
-		"message": "pong",
-		"req":     req,
+		"data": orderedOptionListFromSlice(list),
 	})
+}
+
+// ProjectRuntimes is the handler function of the /runtimes endpoint.
+// It returns the list of the runtimes for the select component.
+func ProjectRuntimes(c *gin.Context) {
+	c.JSON(200, gin.H{
+		"data": orderedOptionListFromSlice(RuntimeList),
+	})
+}
+
+// ProjectDatabases is the handler function of the /databases endpoint.
+// It returns the list of the databases for the select component.
+func ProjectDatabases(c *gin.Context) {
+	c.JSON(200, gin.H{
+		"data": orderedOptionListFromSlice([]string{"no", "mysql"}),
+	})
+}
+
+func orderedOptionListFromSlice(list []string) map[string]string {
+	options := make(map[string]string)
+	for _, v := range list {
+		options[v] = v
+	}
+	return options
 }
