@@ -56,3 +56,16 @@ func H1(document js.Value, text string) js.Value {
 		"innerHTML": text,
 	})
 }
+
+// Span returns a new span element.
+func Span(document js.Value, text, classList string) js.Value {
+	return CreateElement(document, "span", map[string]interface{}{
+		"innerHTML": text,
+		"classList": classList,
+	})
+}
+
+// TextNode returns a new text node.
+func TextNode(document js.Value, text string) js.Value {
+	return document.Call("createTextNode", text)
+}

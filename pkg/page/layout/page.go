@@ -26,6 +26,18 @@ type formItem struct {
 
 // map: form name -> map: form tag -> form item
 var formItems = []formItem{
+	{"checkbox", map[string]interface{}{
+		"id":    "env-staging",
+		"name":  "env-staging",
+		"title": "Staging environment",
+		"label": "Staging environment",
+	}},
+	{"checkbox", map[string]interface{}{
+		"id":    "env-production",
+		"name":  "env-production",
+		"title": "Production environment",
+		"label": "Production environment",
+	}},
 	{"input", map[string]interface{}{
 		"id":          "project-client",
 		"name":        "project-client",
@@ -131,6 +143,9 @@ func (l *Layout) buildFormItem(tag string, attributes map[string]interface{}) js
 		break
 	case "select":
 		formItem = l.buildSelectFormItem(attributes)
+		break
+	case "checkbox":
+		formItem = l.buildCheckboxFormItem(attributes)
 		break
 	}
 	return formItem
@@ -245,6 +260,18 @@ func (l *Layout) buildInputFormItem(inputType string, attributes map[string]inte
 		itemContainer.Call("appendChild", label)
 	}
 	itemContainer.Call("appendChild", element)
+	// add the error message container
+	errorMessageContainer := dom.Div(l.Document(), map[string]interface{}{"className": "error-message", "id": attributes["id"].(string) + "-error-message"})
+	itemContainer.Call("appendChild", errorMessageContainer)
+	return itemContainer
+}
+
+// buildCheckboxFormItem returns a checkbox form item.
+func (l *Layout) buildCheckboxFormItem(attributes map[string]interface{}) js.Value {
+	itemContainer := dom.Div(l.Document(), map[string]interface{}{"className": "form-item center", "id": attributes["id"].(string) + "-container"})
+	// append the checkbox
+	checkbox := dom.CheckBox(l.Document(), attributes["id"].(string), attributes["label"].(string), false)
+	itemContainer.Call("appendChild", checkbox)
 	// add the error message container
 	errorMessageContainer := dom.Div(l.Document(), map[string]interface{}{"className": "error-message", "id": attributes["id"].(string) + "-error-message"})
 	itemContainer.Call("appendChild", errorMessageContainer)
