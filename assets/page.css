@@ -72,6 +72,9 @@
 .select-wrapper.open .select-options-wrapper {
 	display: block;
 }
+.select-wrapper.open input {
+	z-index: 2;
+}
 .select-option {
 	cursor: pointer;
 	font-size: 1rem;

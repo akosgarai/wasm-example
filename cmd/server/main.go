@@ -20,7 +20,7 @@ func main() {
 	options := r.Group("/options")
 	{
 		options.GET("/projects", controller.ProjectNames)
-		options.GET("/projects/:query", controller.ProjectNames)
+		options.POST("/projects", controller.ProjectNamesWithQuery)
 		options.GET("/runtimes", controller.ProjectRuntimes)
 		options.GET("/databases", controller.ProjectDatabases)
 	}

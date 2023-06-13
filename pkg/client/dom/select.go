@@ -80,6 +80,17 @@ func (b *selectBuilder) buildOptionsFromAPI(document, optionsWrapper, hiddenInpu
 	json.Unmarshal(dataRaw, &resp)
 	b.buildOptionsFromMap(document, optionsWrapper, hiddenInput, displayInput, resp.Data, selected)
 }
+func (b *selectBuilder) buildOptionsFromSearchAPI(document, optionsWrapper, hiddenInput, displayInput js.Value, apiURL, selected string) {
+	// gather the options from the API
+	dataRaw, err := request.Post(apiURL, map[string]interface{}{"query": selected})
+	if err != nil {
+		document.Get("alert").Invoke(err.Error())
+		return
+	}
+	var resp = request.Response{}
+	json.Unmarshal(dataRaw, &resp)
+	b.buildOptionsFromMap(document, optionsWrapper, hiddenInput, displayInput, resp.Data, selected)
+}
 func (b *selectBuilder) buildOptionsFromMap(document, optionsWrapper, hiddenInput, displayInput js.Value, options map[string]string, selected string) {
 	notSelectedClassName := OptionClassName
 	if b.prefix != "" {
@@ -87,7 +98,6 @@ func (b *selectBuilder) buildOptionsFromMap(document, optionsWrapper, hiddenInpu
 	}
 	if selected == "" {
 		notSelectedClassName += " selected"
-		displayInput.Set("value", "-")
 	}
 	// Add the not selected option to the optionsWrapper
 	notSelectedOption := Div(document, map[string]interface{}{

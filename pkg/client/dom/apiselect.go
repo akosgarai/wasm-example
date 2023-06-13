@@ -35,8 +35,22 @@ func APISelect(document js.Value, apiURL, inputName, selected string) js.Value {
 		}))
 		return nil
 	}))
+	displayInput.Set("oninput", displayInputChanged(document, optionsWrapper, hiddenInput, displayInput, apiURL, builder))
 	builder.buildOptionsFromAPI(document, optionsWrapper, hiddenInput, displayInput, apiURL, selected)
 	selectorWrapper.Call("appendChild", optionsWrapper)
 
 	return selectorWrapper
+}
+
+// displayInputChanged is the event handler for the displayInput.
+// It rebuilds the optionsWrapper.
+func displayInputChanged(document, optionsWrapper, hiddenInput, displayInput js.Value, apiURL string, builder *selectBuilder) js.Func {
+	return js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		// Get the value of the displayInput
+		value := displayInput.Get("value").String()
+		optionsWrapper.Set("innerHTML", "")
+		// Build the options from the API
+		go builder.buildOptionsFromSearchAPI(document, optionsWrapper, hiddenInput, displayInput, apiURL, value)
+		return nil
+	})
 }

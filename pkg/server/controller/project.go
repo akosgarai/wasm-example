@@ -74,13 +74,27 @@ func processMessage(msg []byte, conn *websocket.Conn) response {
 // ProjectNames is the handler function of the /projects endpoint.
 // It returns the list of the projects for the select component.
 func ProjectNames(c *gin.Context) {
+	c.JSON(200, gin.H{
+		"data": orderedOptionListFromSlice(ProjectList),
+	})
+}
+
+// ProjectNamesWithQuery is the handler function of the /projects endpoint.
+// It returns the list of the projects for the select component.
+func ProjectNamesWithQuery(c *gin.Context) {
+	queryRequest := request.QueryRequest{}
+	if err := c.ShouldBindJSON(&queryRequest); err != nil {
+		c.JSON(400, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
 	list := ProjectList
 	// if we have a query, we need to filter the list
-	query := c.Query("query")
-	if query != "" {
+	if queryRequest.Query != "" {
 		list = []string{}
 		for _, v := range ProjectList {
-			if strings.Contains(v, query) {
+			if strings.Contains(v, queryRequest.Query) {
 				list = append(list, v)
 			}
 		}
