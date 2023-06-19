@@ -1,14 +1,23 @@
 package main
 
 import (
+	"os"
+
 	"github.com/akosgarai/wasm-example/pkg/server/controller"
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
+	// Get the assets directory from the environment variable.
+	// If it is not set, use the default value.
+	assetsDir := os.Getenv("ASSETS_DIR")
+	if assetsDir == "" {
+		// if the env is not set, we have to use the directory relative to this file.
+		assetsDir = "../../assets"
+	}
 	r := gin.Default()
-	r.Static("/assets", "../../assets")
-	r.LoadHTMLGlob("../../assets/*.html")
+	r.Static("/assets", assetsDir)
+	r.LoadHTMLGlob(assetsDir + "/*.html")
 	r.GET("/", func(c *gin.Context) {
 		c.HTML(200, "index.html", gin.H{})
 	})
