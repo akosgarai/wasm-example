@@ -1,5 +1,8 @@
 version: "3.9"
 
+networks:
+  wasm:
+
 services:
   app:
     build: .
@@ -7,3 +10,25 @@ services:
       - 9090:9090
     environment:
       - ASSETS_DIR=/app/assets
+    networks:
+      - wasm
+
+  staging:
+    image: httpd:2.4
+    volumes:
+      - ./environments/staging:/usr/local/apache2/htdocs/
+      - ./bin/setup-project.sh:/usr/local/bin/setup-project.sh
+    ports:
+      - 9091:80
+    networks:
+      - wasm
+
+  production:
+    image: httpd:2.4
+    volumes:
+      - ./environments/production:/usr/local/apache2/htdocs/
+      - ./bin/setup-project.sh:/usr/local/bin/setup-project.sh
+    ports:
+      - 9096:80
+    networks:
+      - wasm
