@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/ash
 
 # If the argument is empty, then exit with error message
 if [ -z "$1" ]; then

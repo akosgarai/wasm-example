@@ -1,14 +1,17 @@
 package controller
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
 
 	"github.com/akosgarai/wasm-example/pkg/server/request"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"golang.org/x/crypto/ssh"
 )
 
 type response struct {
@@ -65,10 +68,70 @@ func processMessage(msg []byte, conn *websocket.Conn) response {
 		resp.Error = validationErrors
 		return resp
 	}
-	// Do the process stuff right here.
-	// Now just return the message.
-	resp.Data = "Project created successfully."
+	// if the unmarshalled.Staging is true, we need to execute the staging command
+	responseString := ""
+	if unmarshalled.Staging != "false" {
+		responseString = executeStagingCommand(unmarshalled)
+	}
+	// if the unmarshalled.Production is true, we need to execute the production command
+	if unmarshalled.Production != "false" {
+		responseString += executeProductionCommand(unmarshalled)
+	}
+	resp.Data = responseString
+
 	return resp
+}
+
+func executeStagingCommand(data *request.CreateProjectRequest) string {
+	sshUser := "scriptexecutor"
+	sshHost := "staging"
+	sshPort := "2222"
+	sshKey := "/root/.ssh/id_rsa_shared"
+	return executeServerCommand(sshUser, sshHost, sshPort, sshKey, data)
+}
+func executeProductionCommand(data *request.CreateProjectRequest) string {
+	sshUser := "scriptexecutor"
+	sshHost := "production"
+	sshPort := "2222"
+	sshKey := "/root/.ssh/id_rsa_shared"
+	return executeServerCommand(sshUser, sshHost, sshPort, sshKey, data)
+}
+
+func executeServerCommand(sshUser, sshHost, sshPort, sshKey string, data *request.CreateProjectRequest) string {
+	key, err := ioutil.ReadFile(sshKey)
+	if err != nil {
+		return fmt.Sprintf("unable to read private key: %v", err)
+	}
+	// Create the Signer for this private key.
+	signer, err := ssh.ParsePrivateKey(key)
+	if err != nil {
+		return fmt.Sprintf("unable to parse private key: %v", err)
+	}
+	config := &ssh.ClientConfig{
+		User: sshUser,
+		Auth: []ssh.AuthMethod{
+			// Add in password check here for moar security.
+			ssh.PublicKeys(signer),
+		},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+	}
+	// Connect to the remote server and perform the SSH handshake.
+	client, err := ssh.Dial("tcp", sshHost+":"+sshPort, config)
+	if err != nil {
+		return fmt.Sprintf("unable to connect to %s:%s with %s: %v", sshHost, sshPort, sshUser, err)
+	}
+	defer client.Close()
+	ss, err := client.NewSession()
+	if err != nil {
+		return fmt.Sprintf("unable to create SSH session: %v", err)
+	}
+	defer ss.Close()
+	// Creating the buffer which will hold the remotly executed command's output.
+	var stdoutBuf bytes.Buffer
+	ss.Stdout = &stdoutBuf
+	cmdString := fmt.Sprintf("/usr/local/bin/setup-project.sh %s %s %s %s %s", data.Client, data.Name, data.Runtime, data.Database, data.OwnerEmail)
+	ss.Run(cmdString)
+	return stdoutBuf.String()
 }
 
 // ProjectNames is the handler function of the /projects endpoint.
