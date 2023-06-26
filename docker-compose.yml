@@ -10,24 +10,30 @@ services:
       - 9090:9090
     environment:
       - ASSETS_DIR=/app/assets
+    volumes:
+      - ./.ssh:/root/.ssh
     networks:
       - wasm
 
   staging:
-    image: httpd:2.4
+    build:
+      dockerfile: Dockerfile.environments
     volumes:
       - ./environments/staging:/usr/local/apache2/htdocs/
       - ./bin/setup-project.sh:/usr/local/bin/setup-project.sh
+      - ./.ssh:/home/scriptexecutor/.ssh
     ports:
       - 9091:80
     networks:
       - wasm
 
   production:
-    image: httpd:2.4
+    build:
+      dockerfile: Dockerfile.environments
     volumes:
       - ./environments/production:/usr/local/apache2/htdocs/
       - ./bin/setup-project.sh:/usr/local/bin/setup-project.sh
+      - ./.ssh:/home/scriptexecutor/.ssh
     ports:
       - 9096:80
     networks:

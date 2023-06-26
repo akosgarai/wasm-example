@@ -1,0 +1,8 @@
+FROM seigetsu/httpd-sshd:2.4-alpine
+
+RUN adduser -s /bin/ash -G www-data -D scriptexecutor
+# install shadow package to use usermod command
+RUN apk add --no-cache shadow
+RUN usermod -p '*' scriptexecutor
+RUN echo "PubkeyAuthentication    yes" >> /etc/ssh/sshd_config
+RUN echo "AuthorizedKeysFile      /home/scriptexecutor/.ssh/authorized_keys" >> /etc/ssh/sshd_config
