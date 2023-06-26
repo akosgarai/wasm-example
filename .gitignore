@@ -1,0 +1,4 @@
+environments/production/
+environments/staging/
+!environments/production/template/
+!environments/staging/template/
