@@ -16,7 +16,7 @@ import (
 
 type response struct {
 	Error interface{}
-	Data  interface{}
+	Data  map[string]string
 }
 
 var wsupgrader = websocket.Upgrader{
@@ -53,6 +53,7 @@ func processMessage(msg []byte, conn *websocket.Conn) response {
 	// msg is a json marshalled string, so we need to unmarshal it
 	// and use the data to create the project
 	var resp response
+	resp.Data = make(map[string]string)
 	unmarshalled := &request.CreateProjectRequest{}
 	err := json.Unmarshal(msg, unmarshalled)
 	if err != nil {
@@ -72,13 +73,27 @@ func processMessage(msg []byte, conn *websocket.Conn) response {
 	responseString := ""
 	if unmarshalled.Staging != "false" {
 		responseString = executeStagingCommand(unmarshalled)
+		// if the output is the success string of the script, then we have to set the path to the project
+		if strings.Contains(responseString, "The project has been created.") {
+			resp.Data["staging-error"] = ""
+			resp.Data["staging-path"] = "localhost:9091/" + unmarshalled.Client + "/" + unmarshalled.Name
+		} else {
+			resp.Data["staging-error"] = "Staging: " + responseString
+			resp.Data["staging-path"] = ""
+		}
 	}
 	// if the unmarshalled.Production is true, we need to execute the production command
 	if unmarshalled.Production != "false" {
 		responseString += executeProductionCommand(unmarshalled)
+		// if the output is the success string of the script, then we have to set the path to the project
+		if strings.Contains(responseString, "The project has been created.") {
+			resp.Data["production-error"] = ""
+			resp.Data["production-path"] = "localhost:9096/" + unmarshalled.Client + "/" + unmarshalled.Name
+		} else {
+			resp.Data["production-error"] = "Production: " + responseString
+			resp.Data["production-path"] = ""
+		}
 	}
-	resp.Data = responseString
-
 	return resp
 }
 

@@ -122,6 +122,31 @@ func (l *Layout) LoadPage() {
 	submit.Set("onclick", l.submitForm().Call("bind", submit))
 	submitContainer.Call("appendChild", submit)
 	form.Call("appendChild", submitContainer)
+	// Add the script execution result container.
+	stagingErrorContainer := dom.Div(l.Document(), map[string]interface{}{
+		"id":        "staging-error",
+		"className": "row error",
+	})
+	stagingErrorContainer.Call("appendChild", dom.P(l.Document(), ""))
+	productionErrorContainer := dom.Div(l.Document(), map[string]interface{}{
+		"id":        "production-error",
+		"className": "row error",
+	})
+	productionErrorContainer.Call("appendChild", dom.P(l.Document(), ""))
+	stagingResultContainer := dom.Div(l.Document(), map[string]interface{}{
+		"id":        "staging-path",
+		"className": "row result",
+	})
+	stagingResultContainer.Call("appendChild", dom.P(l.Document(), ""))
+	productionResultContainer := dom.Div(l.Document(), map[string]interface{}{
+		"id":        "production-path",
+		"className": "row result",
+	})
+	productionResultContainer.Call("appendChild", dom.P(l.Document(), ""))
+	container.Call("appendChild", stagingErrorContainer)
+	container.Call("appendChild", productionErrorContainer)
+	container.Call("appendChild", stagingResultContainer)
+	container.Call("appendChild", productionResultContainer)
 
 	// create the socket
 	l.socket = l.WebSocket().New(socketURL)
@@ -210,8 +235,12 @@ func (l *Layout) socketMessage() js.Func {
 				l.Alert().Invoke(fmt.Sprintf("No data in the response"))
 				return
 			}
-			// the response has to be logged to the console
-			l.Alert().Invoke(fmt.Sprintf("Success response: %+v", responseMap["Data"]))
+			responseData := responseMap["Data"].(map[string]interface{})
+			for key, value := range responseData {
+				// write the response to the result containers
+				resultContainer := l.Document().Call("querySelector", "#"+key+" p")
+				resultContainer.Set("innerText", value)
+			}
 		}()
 		return nil
 	})
@@ -223,6 +252,12 @@ func (l *Layout) clearErrorMessages() {
 	for _, item := range formItems {
 		errorMessageContainer := l.Document().Call("querySelector", "#"+item.Attributes["id"].(string)+"-error-message")
 		errorMessageContainer.Set("innerText", "")
+	}
+	// clear the script execution messages also.
+	selectors := []string{"staging-error", "staging-link", "production-error", "production-link"}
+	for _, item := range selectors {
+		executionMessageContainer := l.Document().Call("querySelector", "#"+item+" p")
+		executionMessageContainer.Set("innerText", "")
 	}
 }
 
