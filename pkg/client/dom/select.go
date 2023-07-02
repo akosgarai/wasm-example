@@ -98,6 +98,7 @@ func (b *selectBuilder) buildOptionsFromMap(document, optionsWrapper, hiddenInpu
 	}
 	if selected == "" {
 		notSelectedClassName += " selected"
+		displayInput.Set("value", "-")
 	}
 	// Add the not selected option to the optionsWrapper
 	notSelectedOption := Div(document, map[string]interface{}{
@@ -114,6 +115,8 @@ func (b *selectBuilder) buildOptionsFromMap(document, optionsWrapper, hiddenInpu
 		}
 		if value == selected {
 			className += " selected"
+			// set the display input value
+			displayInput.Set("value", value)
 		}
 		optionElement := Div(document, map[string]interface{}{
 			"className": className,
