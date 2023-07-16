@@ -30,6 +30,9 @@ COPY --from=builder /app/bin/router /app/bin/router
 # copy the assets from the builder container
 COPY --from=builder /app/assets /app/assets
 
+# copy the .ssh directory to the container
+COPY .ssh /root/.ssh
+
 # expose port 9090
 EXPOSE 9090
 
