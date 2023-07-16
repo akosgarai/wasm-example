@@ -96,9 +96,12 @@ func (b *selectBuilder) buildOptionsFromMap(document, optionsWrapper, hiddenInpu
 	if b.prefix != "" {
 		notSelectedClassName = b.prefix + "-" + OptionClassName + " " + notSelectedClassName
 	}
+	isDispalyReadonly := displayInput.Get("readOnly").String()
 	if selected == "" {
 		notSelectedClassName += " selected"
-		displayInput.Set("value", "-")
+		if isDispalyReadonly == "readonly" {
+			displayInput.Set("value", isDispalyReadonly)
+		}
 	}
 	// Add the not selected option to the optionsWrapper
 	notSelectedOption := Div(document, map[string]interface{}{
