@@ -248,7 +248,7 @@ func (l *Layout) clearErrorMessages() {
 		errorMessageContainer.Set("innerText", "")
 	}
 	// clear the script execution messages also.
-	selectors := []string{"staging-error", "staging-link", "production-error", "production-link"}
+	selectors := []string{"staging-error", "staging-path", "production-error", "production-path"}
 	for _, item := range selectors {
 		executionMessageContainer := l.Document().Call("querySelector", "#"+item+" p")
 		executionMessageContainer.Set("innerText", "")
