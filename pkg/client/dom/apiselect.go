@@ -49,6 +49,8 @@ func displayInputChanged(document, optionsWrapper, hiddenInput, displayInput js.
 		// Get the value of the displayInput
 		value := displayInput.Get("value").String()
 		optionsWrapper.Set("innerHTML", "")
+		// set the value of the hidden input
+		hiddenInput.Set("value", value)
 		// Build the options from the API
 		go builder.buildOptionsFromSearchAPI(document, optionsWrapper, hiddenInput, displayInput, apiURL, value)
 		return nil

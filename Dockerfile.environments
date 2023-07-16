@@ -6,3 +6,11 @@ RUN apk add --no-cache shadow
 RUN usermod -p '*' scriptexecutor
 RUN echo "PubkeyAuthentication    yes" >> /etc/ssh/sshd_config
 RUN echo "AuthorizedKeysFile      /home/scriptexecutor/.ssh/authorized_keys" >> /etc/ssh/sshd_config
+# copy the .ssh directory to the container
+COPY .ssh /home/scriptexecutor/.ssh
+# change the owner of the .ssh directory
+RUN chown -R scriptexecutor:www-data /home/scriptexecutor/.ssh
+# change the permission of the .ssh directory
+RUN chmod 700 /home/scriptexecutor/.ssh
+# change the permission of the files in the .ssh directory
+RUN chmod 600 /home/scriptexecutor/.ssh/*

@@ -64,26 +64,20 @@ var formItems = []formItem{
 		"value":       "example@email.com",
 	}},
 	{"select", map[string]interface{}{
-		"id":    "project-runtime",
-		"name":  "project-runtime",
-		"type":  "simple",
-		"label": "Project runtime",
-		"options": map[string]string{
-			"NoPHP":    "NoPHP",
-			"PHP71FPM": "PHP71FPM",
-			"PHP74FPM": "PHP74FPM",
-			"PHP81FPM": "PHP81FPM",
-		},
+		"id":     "project-runtime",
+		"name":   "project-runtime",
+		"type":   "apisimple",
+		"label":  "Project runtime",
+		"title":  "Project runtime",
+		"apiUrl": "/options/runtimes/",
 	}},
 	{"select", map[string]interface{}{
-		"id":    "project-database",
-		"name":  "project-database",
-		"type":  "simple",
-		"label": "Project database",
-		"options": map[string]string{
-			"no":    "no",
-			"mysql": "mysql",
-		},
+		"id":     "project-database",
+		"name":   "project-database",
+		"type":   "apisimple",
+		"label":  "Project database",
+		"title":  "Project database",
+		"apiUrl": "/options/databases/",
 	}},
 }
 
@@ -254,7 +248,7 @@ func (l *Layout) clearErrorMessages() {
 		errorMessageContainer.Set("innerText", "")
 	}
 	// clear the script execution messages also.
-	selectors := []string{"staging-error", "staging-link", "production-error", "production-link"}
+	selectors := []string{"staging-error", "staging-path", "production-error", "production-path"}
 	for _, item := range selectors {
 		executionMessageContainer := l.Document().Call("querySelector", "#"+item+" p")
 		executionMessageContainer.Set("innerText", "")
@@ -282,6 +276,9 @@ func (l *Layout) buildSelectFormItem(attributes map[string]interface{}) js.Value
 	var selector js.Value
 	if attributes["type"] == "api" {
 		selector = dom.APISelect(l.Document(), attributes["apiUrl"].(string), id, "")
+	} else if attributes["type"] == "apisimple" {
+		// Get the option values from the given API url.
+		selector = dom.SimpleAPISelect(l.Document(), attributes["apiUrl"].(string), id, "")
 	} else if attributes["type"] == "simple" {
 		options := attributes["options"].(map[string]string)
 		selector = dom.SimpleSelect(l.Document(), options, id, "")
