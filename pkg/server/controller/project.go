@@ -82,6 +82,7 @@ func processMessage(msg []byte, conn *websocket.Conn) response {
 			resp.Data["staging-path"] = ""
 		}
 	}
+	responseString = ""
 	// if the unmarshalled.Production is true, we need to execute the production command
 	if unmarshalled.Production != "false" {
 		responseString += executeProductionCommand(unmarshalled)
