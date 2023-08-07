@@ -78,7 +78,7 @@ func (b *selectBuilder) buildOptionsFromAPI(document, optionsWrapper, hiddenInpu
 	}
 	var resp = request.Response{}
 	json.Unmarshal(dataRaw, &resp)
-	b.buildOptionsFromMap(document, optionsWrapper, hiddenInput, displayInput, resp.Data, selected)
+	b.buildOptionsFromInterface(document, optionsWrapper, hiddenInput, displayInput, resp.Data, selected)
 }
 func (b *selectBuilder) buildOptionsFromSearchAPI(document, optionsWrapper, hiddenInput, displayInput js.Value, apiURL, selected string) {
 	// gather the options from the API
@@ -89,9 +89,9 @@ func (b *selectBuilder) buildOptionsFromSearchAPI(document, optionsWrapper, hidd
 	}
 	var resp = request.Response{}
 	json.Unmarshal(dataRaw, &resp)
-	b.buildOptionsFromMap(document, optionsWrapper, hiddenInput, displayInput, resp.Data, selected)
+	b.buildOptionsFromInterface(document, optionsWrapper, hiddenInput, displayInput, resp.Data, selected)
 }
-func (b *selectBuilder) buildOptionsFromMap(document, optionsWrapper, hiddenInput, displayInput js.Value, options map[string]string, selected string) {
+func (b *selectBuilder) buildOptionsFromInterface(document, optionsWrapper, hiddenInput, displayInput js.Value, options []interface{}, selected string) {
 	notSelectedClassName := OptionClassName
 	if b.prefix != "" {
 		notSelectedClassName = b.prefix + "-" + OptionClassName + " " + notSelectedClassName
@@ -112,20 +112,21 @@ func (b *selectBuilder) buildOptionsFromMap(document, optionsWrapper, hiddenInpu
 	notSelectedOption.Set("onclick", optionElementOnClick(document, optionsWrapper, hiddenInput, displayInput))
 	optionsWrapper.Call("appendChild", notSelectedOption)
 	for _, value := range options {
+		optionItem := value.(map[string]interface{})
 		className := OptionClassName
 		if b.prefix != "" {
 			className = b.prefix + "-" + OptionClassName + " " + className
 		}
-		if value == selected {
+		if optionItem["name"].(string) == selected {
 			className += " selected"
 			// set the display input value
-			displayInput.Set("value", value)
+			displayInput.Set("value", optionItem["name"].(string))
 		}
 		optionElement := Div(document, map[string]interface{}{
 			"className": className,
-			"innerHTML": value,
+			"innerHTML": optionItem["name"].(string),
 		})
-		optionElement.Get("dataset").Set("value", value)
+		optionElement.Get("dataset").Set("value", optionItem["name"].(string))
 		optionElement.Set("onclick", optionElementOnClick(document, optionsWrapper, hiddenInput, displayInput))
 		optionsWrapper.Call("appendChild", optionElement)
 	}

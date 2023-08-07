@@ -15,8 +15,8 @@ func SimpleAPISelect(document js.Value, apiURL, inputName, selected string) js.V
 	dataRaw, err := request.Get(apiURL)
 	if err != nil {
 		document.Get("alert").Invoke(err.Error())
-		emptyMap := make(map[string]string)
-		return SimpleSelect(document, emptyMap, inputName, selected)
+		emptyList := []interface{}{}
+		return SimpleSelect(document, emptyList, inputName, selected)
 	}
 	var resp = request.Response{}
 	json.Unmarshal(dataRaw, &resp)

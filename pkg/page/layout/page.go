@@ -279,9 +279,6 @@ func (l *Layout) buildSelectFormItem(attributes map[string]interface{}) js.Value
 	} else if attributes["type"] == "apisimple" {
 		// Get the option values from the given API url.
 		selector = dom.SimpleAPISelect(l.Document(), attributes["apiUrl"].(string), id, "")
-	} else if attributes["type"] == "simple" {
-		options := attributes["options"].(map[string]string)
-		selector = dom.SimpleSelect(l.Document(), options, id, "")
 	}
 	itemContainer := dom.Div(l.Document(), map[string]interface{}{"className": "form-item", "id": attributes["id"].(string) + "-container"})
 	// if we have label, we have to create it and append it to the itemContainer

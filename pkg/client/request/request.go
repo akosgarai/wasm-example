@@ -10,7 +10,7 @@ import (
 
 // Response represents the response of the request
 type Response struct {
-	Data map[string]string
+	Data []interface{} `json:"data"`
 }
 
 // Get returns the body of the response and error if any
