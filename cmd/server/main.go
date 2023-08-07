@@ -1,11 +1,31 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/akosgarai/wasm-example/pkg/server/controller"
+	"github.com/akosgarai/wasm-example/pkg/server/models"
 	"github.com/gin-gonic/gin"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
+
+func initDatabaseConnection() *gorm.DB {
+	user := os.Getenv("MYSQL_USER")
+	passwd := os.Getenv("MYSQL_PASSWORD")
+	host := os.Getenv("MYSQL_HOST")
+	dbname := os.Getenv("MYSQL_DATABASE")
+	connectionString := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8&parseTime=True&loc=Local", user, passwd, host, dbname)
+
+	db, err := gorm.Open(mysql.Open(connectionString), &gorm.Config{})
+	if err != nil {
+		panic("Failed to connect to database!")
+	}
+	// Execute the migrations
+	db.AutoMigrate(&models.Project{}, &models.Runtime{}, &models.Dbtype{}, &models.Client{}, &models.Environment{})
+	return db
+}
 
 func main() {
 	// Get the assets directory from the environment variable.
@@ -21,17 +41,14 @@ func main() {
 	r.GET("/", func(c *gin.Context) {
 		c.HTML(200, "index.html", gin.H{})
 	})
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "pong",
-		})
-	})
+	// Add the databse to the controller package as package variable.
+	appController := controller.NewAppController(initDatabaseConnection())
 	options := r.Group("/options")
 	{
-		options.GET("/projects", controller.ProjectNames)
+		options.GET("/projects", appController.ProjectNames)
 		options.POST("/projects", controller.ProjectNamesWithQuery)
-		options.GET("/runtimes", controller.ProjectRuntimes)
-		options.GET("/databases", controller.ProjectDatabases)
+		options.GET("/runtimes", appController.ProjectRuntimes)
+		options.GET("/databases", appController.ProjectDatabases)
 	}
 	r.GET("/ws", func(c *gin.Context) {
 		controller.WsHandler(c.Writer, c.Request)
