@@ -9,14 +9,10 @@ import (
 	"strings"
 
 	"github.com/akosgarai/wasm-example/pkg/server/request"
+	"github.com/akosgarai/wasm-example/pkg/server/response"
 	"github.com/gorilla/websocket"
 	"golang.org/x/crypto/ssh"
 )
-
-type response struct {
-	Error interface{}
-	Data  map[string]string
-}
 
 // WsHandler is the handler function of the /ws endpoint.
 func (app *AppController) WsHandler(w http.ResponseWriter, r *http.Request) {
@@ -32,16 +28,15 @@ func (app *AppController) WsHandler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		response := app.processMessage(msg, conn)
-		marshalled, _ := json.Marshal(response)
+		marshalled, _ := json.Marshal(&response)
 		conn.WriteMessage(t, marshalled)
 	}
 }
 
-func (app *AppController) processMessage(msg []byte, conn *websocket.Conn) response {
+func (app *AppController) processMessage(msg []byte, conn *websocket.Conn) *response.Socket {
 	// msg is a json marshalled string, so we need to unmarshal it
 	// and use the data to create the project
-	var resp response
-	resp.Data = make(map[string]string)
+	resp := response.NewSocket()
 	unmarshalled := &request.CreateProjectRequest{}
 	err := json.Unmarshal(msg, unmarshalled)
 	if err != nil {
