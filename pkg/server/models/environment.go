@@ -6,6 +6,6 @@ import "gorm.io/gorm"
 type Environment struct {
 	gorm.Model
 	ID   uint   `json:"id" gorm:"primaryKey"`
-	Name string `json:"name"`
-	IP   string `json:"ip"`
+	Name string `json:"name" gorm:"unique"`
+	Host []Host `gorm:"foreignKey:EnvironmentID"`
 }

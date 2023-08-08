@@ -6,5 +6,5 @@ import "gorm.io/gorm"
 type Client struct {
 	gorm.Model
 	ID   uint   `json:"id" gorm:"primaryKey"`
-	Name string `json:"name"`
+	Name string `json:"name" gorm:"unique"`
 }
