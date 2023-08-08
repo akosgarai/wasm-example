@@ -46,12 +46,12 @@ func main() {
 	options := r.Group("/options")
 	{
 		options.GET("/projects", appController.ProjectNames)
-		options.POST("/projects", controller.ProjectNamesWithQuery)
+		options.POST("/projects", appController.ProjectNamesWithQuery)
 		options.GET("/runtimes", appController.ProjectRuntimes)
 		options.GET("/databases", appController.ProjectDatabases)
 	}
 	r.GET("/ws", func(c *gin.Context) {
-		controller.WsHandler(c.Writer, c.Request)
+		appController.WsHandler(c.Writer, c.Request)
 	})
 	r.Run(":9090")
 }
