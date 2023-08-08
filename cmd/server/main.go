@@ -23,7 +23,50 @@ func initDatabaseConnection() *gorm.DB {
 		panic("Failed to connect to database!")
 	}
 	// Execute the migrations
-	db.AutoMigrate(&models.Project{}, &models.Runtime{}, &models.Dbtype{}, &models.Client{}, &models.Environment{})
+	db.AutoMigrate(&models.Project{}, &models.Runtime{}, &models.Dbtype{}, &models.Client{}, &models.Environment{}, &models.Host{})
+	// Seed the database with the default values.
+	dbNames := []string{"mysql", "no"}
+	for _, name := range dbNames {
+		var dbtype models.Dbtype
+		dbtype.Name = name
+		if err := db.Where("name = ?", name).FirstOrCreate(&dbtype).Error; err != nil {
+			panic("Failed to seed database!")
+		}
+	}
+	runtimeNames := []string{"noPHP", "PHP71FPM", "PHP74FPM", "PHP81FPM"}
+	for _, name := range runtimeNames {
+		var runtime models.Runtime
+		runtime.Name = name
+		if err := db.Where("name = ?", name).FirstOrCreate(&runtime).Error; err != nil {
+			panic("Failed to seed database!")
+		}
+	}
+	var stagingEnvironment models.Environment
+	stagingHostName := "staging" // the service name in the docker-compose file
+	stagingEnvironment.Name = stagingHostName
+	var productionEnvironment models.Environment
+	productionHostName := "production" // the service name in the docker-compose file
+	productionEnvironment.Name = productionHostName
+	if err := db.Where("name = ?", stagingHostName).FirstOrCreate(&stagingEnvironment).Error; err != nil {
+		panic("Failed to seed database!")
+	}
+	if err := db.Where("name = ?", productionHostName).FirstOrCreate(&productionEnvironment).Error; err != nil {
+		panic("Failed to seed database!")
+	}
+	var stagingHost models.Host
+	stagingHost.IP = stagingHostName
+	stagingHost.EnvironmentID = stagingEnvironment.ID
+	stagingHost.Name = "server-staging"
+	var productionHost models.Host
+	productionHost.IP = productionHostName
+	productionHost.EnvironmentID = productionEnvironment.ID
+	productionHost.Name = "server-production"
+	if err := db.Where("ip = ?", stagingHostName).Where("environment_id = ?", stagingEnvironment.ID).Attrs(stagingHost).FirstOrCreate(&stagingHost).Error; err != nil {
+		panic("Failed to seed database!")
+	}
+	if err := db.Where("ip = ?", productionHostName).Where("environment_id = ?", productionEnvironment.ID).Attrs(productionHost).FirstOrCreate(&productionHost).Error; err != nil {
+		panic("Failed to seed database!")
+	}
 	return db
 }
 
