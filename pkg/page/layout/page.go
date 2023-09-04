@@ -179,13 +179,15 @@ func (l *Layout) buildFormItem(tag string, attributes map[string]interface{}) js
 func (l *Layout) submitForm() js.Func {
 	jsonFunc := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		go func() {
-			envStaging := false
-			if l.Document().Call("querySelector", "#env-staging").Get("checked").Bool() {
-				envStaging = true
-			}
-			envProduction := false
-			if l.Document().Call("querySelector", "#env-production").Get("checked").Bool() {
-				envProduction = true
+			var environments []map[string]interface{}
+			checkedEnvironments := l.Document().Call("querySelectorAll", "input[name='environments']:checked")
+			for i := 0; i < checkedEnvironments.Length(); i++ {
+				environmentIDString := checkedEnvironments.Index(i).Get("value").String()
+				environmentID, _ := strconv.Atoi(environmentIDString)
+				environments = append(environments, map[string]interface{}{
+					"id":   environmentID,
+					"name": environmentIDString,
+				})
 			}
 			var runtimeID int
 			if l.Document().Call("querySelector", "#project-runtime").Get("value").String() != "" {
@@ -204,8 +206,7 @@ func (l *Layout) submitForm() js.Func {
 				"project-owner-email": l.Document().Call("querySelector", "#project-owner-email").Get("value").String(),
 				"project-runtime":     runtimeID,
 				"project-database":    databaseID,
-				"env-staging":         envStaging,
-				"env-production":      envProduction,
+				"project-environment": environments,
 			}
 			jsonStr, err := json.Marshal(projectData)
 			if err != nil {
@@ -258,7 +259,9 @@ func (l *Layout) socketMessage() js.Func {
 func (l *Layout) clearErrorMessages() {
 	for _, item := range formItems {
 		errorMessageContainer := l.Document().Call("querySelector", "#"+item.Attributes["id"].(string)+"-error-message")
-		errorMessageContainer.Set("innerText", "")
+		if errorMessageContainer.IsNull() == false {
+			errorMessageContainer.Set("innerText", "")
+		}
 	}
 	// clear the script execution messages also.
 	selectors := []string{"staging-error", "staging-path", "production-error", "production-path"}
