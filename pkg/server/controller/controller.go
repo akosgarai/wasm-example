@@ -48,6 +48,16 @@ func (app *AppController) ProjectRuntimes(c *gin.Context) {
 	})
 }
 
+// ProjectEnvironments is the handler function of the /environments endpoint.
+// It returns the list of the environments for the select component.
+func (app *AppController) ProjectEnvironments(c *gin.Context) {
+	environmentList := []models.Environment{}
+	app.db.Find(&environmentList)
+	c.JSON(200, gin.H{
+		"data": environmentList,
+	})
+}
+
 // ProjectNames is the handler function of the /projects endpoint.
 // It returns the list of the projects for the select component.
 func (app *AppController) ProjectNames(c *gin.Context) {

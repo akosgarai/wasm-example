@@ -92,6 +92,7 @@ func main() {
 		options.POST("/projects", appController.ProjectNamesWithQuery)
 		options.GET("/runtimes", appController.ProjectRuntimes)
 		options.GET("/databases", appController.ProjectDatabases)
+		options.GET("/environments", appController.ProjectEnvironments)
 	}
 	r.GET("/ws", func(c *gin.Context) {
 		appController.WsHandler(c.Writer, c.Request)

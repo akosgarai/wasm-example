@@ -28,17 +28,11 @@ type formItem struct {
 
 // map: form name -> map: form tag -> form item
 var formItems = []formItem{
-	{"checkbox", map[string]interface{}{
-		"id":    "env-staging",
-		"name":  "env-staging",
-		"title": "Staging environment",
-		"label": "Staging environment",
-	}},
-	{"checkbox", map[string]interface{}{
-		"id":    "env-production",
-		"name":  "env-production",
-		"title": "Production environment",
-		"label": "Production environment",
+	{"checkboxList", map[string]interface{}{
+		"id":     "environments",
+		"name":   "environments",
+		"title":  "Environments",
+		"apiUrl": "/options/environments/",
 	}},
 	{"input", map[string]interface{}{
 		"id":          "project-client",
@@ -173,8 +167,8 @@ func (l *Layout) buildFormItem(tag string, attributes map[string]interface{}) js
 	case "select":
 		formItem = l.buildSelectFormItem(attributes)
 		break
-	case "checkbox":
-		formItem = l.buildCheckboxFormItem(attributes)
+	case "checkboxList":
+		formItem = l.buildCheckboxFormItems(attributes)
 		break
 	}
 	return formItem
@@ -341,14 +335,8 @@ func (l *Layout) buildInputFormItem(inputType string, attributes map[string]inte
 	return itemContainer
 }
 
-// buildCheckboxFormItem returns a checkbox form item.
-func (l *Layout) buildCheckboxFormItem(attributes map[string]interface{}) js.Value {
-	itemContainer := dom.Div(l.Document(), map[string]interface{}{"className": "form-item center", "id": attributes["id"].(string) + "-container"})
-	// append the checkbox
-	checkbox := dom.CheckBox(l.Document(), attributes["id"].(string), attributes["label"].(string), false)
-	itemContainer.Call("appendChild", checkbox)
-	// add the error message container
-	errorMessageContainer := dom.Div(l.Document(), map[string]interface{}{"className": "error-message", "id": attributes["id"].(string) + "-error-message"})
-	itemContainer.Call("appendChild", errorMessageContainer)
-	return itemContainer
+// buildCheckboxFormItems returns a list of checkbox form items.
+func (l *Layout) buildCheckboxFormItems(attributes map[string]interface{}) js.Value {
+	chechboxList := dom.CheckBoxList(l.Document(), attributes["id"].(string), attributes["name"].(string), attributes["title"].(string), attributes["apiUrl"].(string))
+	return chechboxList
 }
