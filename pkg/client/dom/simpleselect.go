@@ -1,11 +1,15 @@
 package dom
 
-import "syscall/js"
+import (
+	"syscall/js"
+
+	"github.com/akosgarai/wasm-example/pkg/client/dom/selector"
+)
 
 // SimpleSelect returns a simple select element.
 // The document input parameter is the document.
 // The next input parameter is the map of options.
-func SimpleSelect(document js.Value, options []interface{}, inputName, selected string) js.Value {
+func SimpleSelect(document js.Value, options selector.SelectOptions, inputName string, selected *selector.Selected) js.Value {
 	builder := newSelectBuilder(document, "simple")
 	selectorWrapper := builder.wrapper()
 	// Add the hidden input element to the selectorWrapper
@@ -36,7 +40,7 @@ func SimpleSelect(document js.Value, options []interface{}, inputName, selected 
 	}))
 	selectorWrapper.Call("appendChild", button)
 	// Add the select options to the selectorWrapper
-	builder.buildOptionsFromInterface(document, optionsWrapper, hiddenInput, readonlyInput, options, selected)
+	builder.buildOptions(document, optionsWrapper, hiddenInput, readonlyInput, options, selected)
 	selectorWrapper.Call("appendChild", optionsWrapper)
 	return selectorWrapper
 }
