@@ -54,7 +54,7 @@ func (app *AppController) ProjectNames(c *gin.Context) {
 	projectList := []models.Project{}
 	app.db.Find(&projectList)
 	c.JSON(200, gin.H{
-		"data": projectList,
+		"data": app.projectTransform(projectList),
 	})
 }
 
@@ -75,6 +75,18 @@ func (app *AppController) ProjectNamesWithQuery(c *gin.Context) {
 	projectList := []models.Project{}
 	app.db.Where("name LIKE ?", "%"+queryRequest.Query+"%").Find(&projectList)
 	c.JSON(200, gin.H{
-		"data": projectList,
+		"data": app.projectTransform(projectList),
 	})
+}
+
+// projectTransform changes the output structure to make it fit to the frontend.
+func (app *AppController) projectTransform(projects []models.Project) []map[string]interface{} {
+	var result []map[string]interface{}
+	for _, project := range projects {
+		result = append(result, map[string]interface{}{
+			"id":   project.Name,
+			"name": project.Name,
+		})
+	}
+	return result
 }
