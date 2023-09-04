@@ -2,111 +2,135 @@ package request
 
 import (
 	"regexp"
+
+	"github.com/akosgarai/wasm-example/pkg/server/models"
+	"gorm.io/gorm"
 )
 
 const (
-	// Runtime options: NoPHP, PHP71FPM, PHP74FPM, PHP81FPM
-
-	// RuntimeNoPHP is the NoPHP runtime option.
-	RuntimeNoPHP = "NoPHP"
-	// RuntimePHP71FPM is the PHP71FPM runtime option.
-	RuntimePHP71FPM = "PHP71FPM"
-	// RuntimePHP74FPM is the PHP74FPM runtime option.
-	RuntimePHP74FPM = "PHP74FPM"
-	// RuntimePHP81FPM is the PHP81FPM runtime option.
-	RuntimePHP81FPM = "PHP81FPM"
-
-	// Database options: no, mysql
-
-	// DatabaseNo is the no database option.
-	DatabaseNo = "no"
-	// DatabaseMySQL is the mysql database option.
-	DatabaseMySQL = "mysql"
-
 	// EmailRegex is the regex for the email validation.
 	EmailRegex = `^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`
 )
 
-var (
-	// RuntimeOptions is the list of the available runtime options.
-	RuntimeOptions = []string{RuntimeNoPHP, RuntimePHP71FPM, RuntimePHP74FPM, RuntimePHP81FPM}
-	// DatabaseOptions is the list of the available database options.
-	DatabaseOptions = []string{DatabaseNo, DatabaseMySQL}
-)
-
 // CreateProjectRequest represents the request body of the /project/create endpoint.
 type CreateProjectRequest struct {
-	Client     string `json:"project-client"`
-	Command    string `json:"command"`
-	Database   string `json:"project-database"`
-	Name       string `json:"project-name"`
-	OwnerEmail string `json:"project-owner-email"`
-	Runtime    string `json:"project-runtime"`
-	Staging    string `json:"env-staging"`
-	Production string `json:"env-production"`
+	Client      string               `json:"project-client"`
+	Command     string               `json:"command"`
+	Database    int                  `json:"project-database"`
+	Name        string               `json:"project-name"`
+	OwnerEmail  string               `json:"project-owner-email"`
+	Runtime     int                  `json:"project-runtime"`
+	Environment []ProjectEnvironment `json:"project-environment"`
+	// The following fields are not part of the request body.
+	ClientID         uint
+	ProjectID        uint
+	validationErrors map[string][]string
+}
+
+// ProjectEnvironment represents the environment of the project.
+type ProjectEnvironment struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
 }
 
 // Validate is for the data validation.
 // It returns the array of the errors.
 // If the data is fine, it returns empty arra.
-func (r *CreateProjectRequest) Validate() map[string][]string {
-	validationErrorMap := make(map[string][]string)
-	// At least one environment has to be selected.
-	if r.Staging == "false" && r.Production == "false" {
-		var validationErrors []string
-		validationErrors = append(validationErrors, "At least one environment has to be selected")
-		validationErrorMap["env-staging"] = validationErrors
-		validationErrorMap["env-production"] = validationErrors
-	}
+func (r *CreateProjectRequest) Validate(db *gorm.DB) map[string][]string {
+	r.validateEnvironment(db)
 	// Name validation. It has to be 3-30 character long.
+	r.validateName(db)
+	// Client validation, it has to be 3-30 character long.
+	r.validateClient(db)
+	// Owner email validation.
+	r.validateOwnerEmail()
+	// Runtime validation.
+	r.validateRuntime(db)
+	// Database validation.
+	r.validateDatabase(db)
+	return r.validationErrors
+}
+
+// project name validation. It has to be 3-30 character long.
+func (r *CreateProjectRequest) validateName(db *gorm.DB) {
 	lenName := len(r.Name)
 	if lenName < 3 || lenName > 30 {
-		var validationErrors []string
-		validationErrors = append(validationErrors, "Invalid project name length: it has to be 3-30 char")
-		validationErrorMap["project-name"] = validationErrors
+		r.addValidationError("project-name", "Invalid project name length: it has to be 3-30 char")
 	}
-	// Client validation, it has to be 3-30 character long.
+	// setup project id. if the project is not in the database, it will be created.
+	var project models.Project
+	project.Name = r.Name
+	if err := db.Where("name = ?", r.Name).FirstOrCreate(&project).Error; err != nil {
+		r.addValidationError("project-name", "Invalid project name")
+		return
+	}
+	r.ProjectID = project.ID
+}
+
+// client validation. It has to be 3-30 character long.
+func (r *CreateProjectRequest) validateClient(db *gorm.DB) {
 	lenClient := len(r.Client)
 	if lenClient < 3 || lenClient > 30 {
-		var validationErrors []string
-		validationErrors = append(validationErrors, "Invalid project client length: it has to be 3-30 char")
-		validationErrorMap["project-client"] = validationErrors
+		r.addValidationError("project-client", "Invalid project client length: it has to be 3-30 char")
+		return
 	}
-	// Owner email validation.
-	// It has to be a valid email address format.
+	// setup client id. if the client is not in the database, it will be created.
+	var client models.Client
+	client.Name = r.Client
+	if err := db.Where("name = ?", r.Client).FirstOrCreate(&client).Error; err != nil {
+		r.addValidationError("project-client", "Invalid project client")
+		return
+	}
+	r.ClientID = client.ID
+}
+
+// owner email validation. It has to be a valid email address format.
+func (r *CreateProjectRequest) validateOwnerEmail() {
 	regexpEmail := regexp.MustCompile(EmailRegex)
 	if regexpEmail.MatchString(r.OwnerEmail) == false {
-		var validationErrors []string
-		validationErrors = append(validationErrors, "Invalid project owner email: "+r.OwnerEmail)
-		validationErrorMap["project-owner-email"] = validationErrors
+		r.addValidationError("project-owner-email", "Invalid project owner email: "+r.OwnerEmail)
 	}
-	// Runtime validation.
-	// It has to be one of the available runtime options.
-	var runtimeValid bool
-	for _, runtime := range RuntimeOptions {
-		if runtime == r.Runtime {
-			runtimeValid = true
-			break
+}
+
+// runtime validation. It has to be one of the available runtime id options stored in the database.
+func (r *CreateProjectRequest) validateRuntime(db *gorm.DB) {
+	var runtime models.Runtime
+	if err := db.Where("id = ?", r.Runtime).First(&runtime).Error; err != nil {
+		r.addValidationError("project-runtime", "Invalid project runtime")
+	}
+}
+
+// database validation. It has to be one of the available database id options stored in the database.
+func (r *CreateProjectRequest) validateDatabase(db *gorm.DB) {
+	var database models.Dbtype
+	if err := db.Where("id = ?", r.Database).First(&database).Error; err != nil {
+		r.addValidationError("project-database", "Invalid project database")
+	}
+}
+
+// environment validation. It has to be at least one environment selected.
+func (r *CreateProjectRequest) validateEnvironment(db *gorm.DB) {
+	if len(r.Environment) == 0 {
+		// At least one environment has to be selected.
+		environments := []models.Environment{}
+		db.Find(&environments)
+		for _, env := range environments {
+			r.addValidationError("env-"+env.Name, "At least one environment has to be selected")
 		}
 	}
-	if runtimeValid == false {
-		var validationErrors []string
-		validationErrors = append(validationErrors, "Invalid project runtime")
-		validationErrorMap["project-runtime"] = validationErrors
-	}
-	// Database validation.
-	// It has to be one of the available database options.
-	var databaseValid bool
-	for _, database := range DatabaseOptions {
-		if database == r.Database {
-			databaseValid = true
-			break
+	// environment validation
+	for _, environment := range r.Environment {
+		var env models.Environment
+		if db.First(&env, environment.ID).RowsAffected == 0 {
+			r.addValidationError("env-"+environment.Name, "Invalid environment id")
 		}
 	}
-	if databaseValid == false {
-		var validationErrors []string
-		validationErrors = append(validationErrors, "Invalid project database")
-		validationErrorMap["project-database"] = validationErrors
+}
+
+// Extend the error list with the new error.
+func (r *CreateProjectRequest) addValidationError(key string, error string) {
+	if r.validationErrors == nil {
+		r.validationErrors = make(map[string][]string)
 	}
-	return validationErrorMap
+	r.validationErrors[key] = append(r.validationErrors[key], error)
 }
