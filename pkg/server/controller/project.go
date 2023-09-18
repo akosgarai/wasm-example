@@ -8,10 +8,18 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/akosgarai/wasm-example/pkg/server/models"
 	"github.com/akosgarai/wasm-example/pkg/server/request"
 	"github.com/akosgarai/wasm-example/pkg/server/response"
 	"github.com/gorilla/websocket"
 	"golang.org/x/crypto/ssh"
+)
+
+var (
+	mapIPToLocalhost = map[string]string{
+		"staging":    "localhost:9091",
+		"production": "localhost:9092",
+	}
 )
 
 // WsHandler is the handler function of the /ws endpoint.
@@ -42,68 +50,55 @@ func (app *AppController) processMessage(msg []byte, conn *websocket.Conn) *resp
 	if err != nil {
 		errMsg := fmt.Sprintf("Failed to unmarshal json: %+v", err)
 		fmt.Printf(errMsg)
-		resp.Error = errMsg
+		responseError := map[string]interface{}{
+			"general": errMsg,
+		}
+		resp.Error = responseError
 		return resp
 	}
 	// Data validation
-	validationErrors := unmarshalled.Validate()
+	validationErrors := unmarshalled.Validate(app.db)
 	if len(validationErrors) > 0 {
 		fmt.Printf("Validation errors: %+v", validationErrors)
 		resp.Error = validationErrors
 		return resp
 	}
-	// if the unmarshalled.Staging is true, we need to execute the staging command
-	responseString := ""
-	if unmarshalled.Staging != "false" {
-		// insert the project into the database
-		responseString = app.executeStagingCommand(unmarshalled)
-		// if the output is the success string of the script, then we have to set the path to the project
-		if strings.Contains(responseString, "The project has been created.") {
-			resp.Data["staging-error"] = ""
-			resp.Data["staging-path"] = "localhost:9091/" + unmarshalled.Client + "/" + unmarshalled.Name
-		} else {
-			resp.Data["staging-error"] = "Staging: " + responseString
-			resp.Data["staging-path"] = ""
-			// if the creation of the project failed, we need to delete the project from the database
+	// create project on each environment
+	for _, env := range unmarshalled.Environment {
+		// Create the Application table entry
+		appEntry := &models.Application{
+			ProjectID:     unmarshalled.ProjectID,
+			ClientID:      unmarshalled.ClientID,
+			OwnerEmail:    unmarshalled.OwnerEmail,
+			RuntimeID:     unmarshalled.Runtime,
+			DatabaseID:    unmarshalled.Database,
+			EnvironmentID: env.ID,
 		}
-	}
-	responseString = ""
-	// if the unmarshalled.Production is true, we need to execute the production command
-	if unmarshalled.Production != "false" {
-		// insert the project into the database
-		responseString += app.executeProductionCommand(unmarshalled)
-		// if the output is the success string of the script, then we have to set the path to the project
+		app.db.Create(appEntry)
+		app.db.Preload("Environment").Preload("Runtime").Preload("Database").Preload("Project").Preload("Client").First(appEntry)
+		// Create the project on the environment
+		// Get the entry from the host table by the environment id
+		hostEntry := &models.Host{EnvironmentID: uint(env.ID)}
+		app.db.Preload("Environment").First(hostEntry)
+		logMessage := fmt.Sprintf("Host entry: %+v , %+v", hostEntry, appEntry)
+		resp.Data["temp-log"] = logMessage
+		responseString := app.executeServerCommand(hostEntry, appEntry)
 		if strings.Contains(responseString, "The project has been created.") {
-			resp.Data["production-error"] = ""
-			resp.Data["production-path"] = "localhost:9096/" + unmarshalled.Client + "/" + unmarshalled.Name
+			resp.Data[appEntry.Environment.Name+"-error"] = ""
+			resp.Data[appEntry.Environment.Name+"-path"] = mapIPToLocalhost[hostEntry.IP] + "/" + unmarshalled.Client + "/" + unmarshalled.Name
 		} else {
-			resp.Data["production-error"] = "Production: " + responseString
-			resp.Data["production-path"] = ""
+			resp.Data[appEntry.Environment.Name+"-error"] = appEntry.Environment.Name + ": " + responseString
+			resp.Data[appEntry.Environment.Name+"-path"] = ""
 			// if the creation of the project failed, we need to delete the project from the database
 		}
 	}
 	return resp
 }
 
-func (app *AppController) executeStagingCommand(data *request.CreateProjectRequest) string {
-	sshUser := "scriptexecutor"
-	sshHost := "staging"
-	sshPort := "2222"
-	sshKey := "/root/.ssh/id_rsa_shared"
-	return app.executeServerCommand(sshUser, sshHost, sshPort, sshKey, data)
-}
-func (app *AppController) executeProductionCommand(data *request.CreateProjectRequest) string {
-	sshUser := "scriptexecutor"
-	sshHost := "production"
-	sshPort := "2222"
-	sshKey := "/root/.ssh/id_rsa_shared"
-	return app.executeServerCommand(sshUser, sshHost, sshPort, sshKey, data)
-}
-
-func (app *AppController) executeServerCommand(sshUser, sshHost, sshPort, sshKey string, data *request.CreateProjectRequest) string {
-	key, err := ioutil.ReadFile(sshKey)
+func (app *AppController) executeServerCommand(host *models.Host, data *models.Application) string {
+	key, err := ioutil.ReadFile(host.SSHKey)
 	if err != nil {
-		return fmt.Sprintf("unable to read private key: %v", err)
+		return fmt.Sprintf("unable to read private key: %v - %v", err, host)
 	}
 	// Create the Signer for this private key.
 	signer, err := ssh.ParsePrivateKey(key)
@@ -111,7 +106,7 @@ func (app *AppController) executeServerCommand(sshUser, sshHost, sshPort, sshKey
 		return fmt.Sprintf("unable to parse private key: %v", err)
 	}
 	config := &ssh.ClientConfig{
-		User: sshUser,
+		User: host.SSHUser,
 		Auth: []ssh.AuthMethod{
 			// Add in password check here for moar security.
 			ssh.PublicKeys(signer),
@@ -119,9 +114,9 @@ func (app *AppController) executeServerCommand(sshUser, sshHost, sshPort, sshKey
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 	// Connect to the remote server and perform the SSH handshake.
-	client, err := ssh.Dial("tcp", sshHost+":"+sshPort, config)
+	client, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", host.IP, host.SSHPort), config)
 	if err != nil {
-		return fmt.Sprintf("unable to connect to %s:%s with %s: %v", sshHost, sshPort, sshUser, err)
+		return fmt.Sprintf("unable to connect to %s:%d with %s: %v", host.IP, host.SSHPort, host.SSHUser, err)
 	}
 	defer client.Close()
 	ss, err := client.NewSession()
@@ -132,7 +127,7 @@ func (app *AppController) executeServerCommand(sshUser, sshHost, sshPort, sshKey
 	// Creating the buffer which will hold the remotly executed command's output.
 	var stdoutBuf bytes.Buffer
 	ss.Stdout = &stdoutBuf
-	cmdString := fmt.Sprintf("/usr/local/bin/setup-project.sh %s %s %s %s %s", data.Client, data.Name, data.Runtime, data.Database, data.OwnerEmail)
+	cmdString := fmt.Sprintf("/usr/local/bin/setup-project.sh %s %s %s %s %s", data.Client.Name, data.Project.Name, data.Runtime.Name, data.Database.Name, data.OwnerEmail)
 	ss.Run(cmdString)
 	return stdoutBuf.String()
 }

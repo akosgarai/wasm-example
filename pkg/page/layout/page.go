@@ -247,7 +247,9 @@ func (l *Layout) socketMessage() js.Func {
 			for key, value := range responseData {
 				// write the response to the result containers
 				resultContainer := l.Document().Call("querySelector", "#"+key+" p")
-				resultContainer.Set("innerText", value)
+				if resultContainer.IsNull() == false {
+					resultContainer.Set("innerText", value)
+				}
 			}
 		}()
 		return nil
