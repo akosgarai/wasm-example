@@ -28,6 +28,7 @@ docker run -p -e ASSETS_DIR=/app/assets 9090:9090 wasm-examle:latest
 - app contains the backend and frontend application
 - staging represents the staging remote machine
 - production represents the production remote machine.
+- db the storage for the application
 
 ```bash
 docker compose up -d

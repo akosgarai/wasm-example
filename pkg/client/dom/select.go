@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"syscall/js"
 
+	"github.com/akosgarai/wasm-example/pkg/client/dom/selector"
 	"github.com/akosgarai/wasm-example/pkg/client/request"
 )
 
@@ -69,35 +70,35 @@ func (b *selectBuilder) displayInput(value string, readonly bool) js.Value {
 	return Input(b.document, "text", attr)
 }
 
-func (b *selectBuilder) buildOptionsFromAPI(document, optionsWrapper, hiddenInput, displayInput js.Value, apiURL, selected string) {
+func (b *selectBuilder) buildOptionsFromAPI(document, optionsWrapper, hiddenInput, displayInput js.Value, apiURL string, selected *selector.Selected) {
 	// gather the options from the API
 	dataRaw, err := request.Get(apiURL)
 	if err != nil {
-		document.Get("alert").Invoke(err.Error())
+		js.Global().Get("alert").Invoke(err.Error())
 		return
 	}
-	var resp = request.Response{}
+	var resp = request.SelectOptionsResponse{}
 	json.Unmarshal(dataRaw, &resp)
-	b.buildOptionsFromMap(document, optionsWrapper, hiddenInput, displayInput, resp.Data, selected)
+	b.buildOptions(document, optionsWrapper, hiddenInput, displayInput, resp.Data, selected)
 }
-func (b *selectBuilder) buildOptionsFromSearchAPI(document, optionsWrapper, hiddenInput, displayInput js.Value, apiURL, selected string) {
+func (b *selectBuilder) buildOptionsFromSearchAPI(document, optionsWrapper, hiddenInput, displayInput js.Value, apiURL string, selected *selector.Selected) {
 	// gather the options from the API
-	dataRaw, err := request.Post(apiURL, map[string]interface{}{"query": selected})
+	dataRaw, err := request.Post(apiURL, map[string]interface{}{"query": selected.DisplayValue()})
 	if err != nil {
-		document.Get("alert").Invoke(err.Error())
+		js.Global().Get("alert").Invoke(err.Error())
 		return
 	}
-	var resp = request.Response{}
+	var resp = request.SelectOptionsResponse{}
 	json.Unmarshal(dataRaw, &resp)
-	b.buildOptionsFromMap(document, optionsWrapper, hiddenInput, displayInput, resp.Data, selected)
+	b.buildOptions(document, optionsWrapper, hiddenInput, displayInput, resp.Data, selected)
 }
-func (b *selectBuilder) buildOptionsFromMap(document, optionsWrapper, hiddenInput, displayInput js.Value, options map[string]string, selected string) {
+func (b *selectBuilder) buildOptions(document, optionsWrapper, hiddenInput, displayInput js.Value, options selector.SelectOptions, selected *selector.Selected) {
 	notSelectedClassName := OptionClassName
 	if b.prefix != "" {
 		notSelectedClassName = b.prefix + "-" + OptionClassName + " " + notSelectedClassName
 	}
 	isDispalyReadonly := displayInput.Get("readOnly").String()
-	if selected == "" {
+	if selected.IsEmpty() {
 		notSelectedClassName += " selected"
 		if isDispalyReadonly == "readonly" {
 			displayInput.Set("value", isDispalyReadonly)
@@ -112,20 +113,21 @@ func (b *selectBuilder) buildOptionsFromMap(document, optionsWrapper, hiddenInpu
 	notSelectedOption.Set("onclick", optionElementOnClick(document, optionsWrapper, hiddenInput, displayInput))
 	optionsWrapper.Call("appendChild", notSelectedOption)
 	for _, value := range options {
+		optionLabel, optionID := value.Get()
 		className := OptionClassName
 		if b.prefix != "" {
 			className = b.prefix + "-" + OptionClassName + " " + className
 		}
-		if value == selected {
+		if selected.IsSelected(optionID.Get()) {
 			className += " selected"
 			// set the display input value
-			displayInput.Set("value", value)
+			displayInput.Set("value", optionLabel)
 		}
 		optionElement := Div(document, map[string]interface{}{
 			"className": className,
-			"innerHTML": value,
+			"innerHTML": optionLabel,
 		})
-		optionElement.Get("dataset").Set("value", value)
+		optionElement.Get("dataset").Set("value", optionID.Get())
 		optionElement.Set("onclick", optionElementOnClick(document, optionsWrapper, hiddenInput, displayInput))
 		optionsWrapper.Call("appendChild", optionElement)
 	}

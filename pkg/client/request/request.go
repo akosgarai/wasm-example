@@ -6,11 +6,19 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/akosgarai/wasm-example/pkg/client/dom/selector"
 )
 
 // Response represents the response of the request
 type Response struct {
-	Data map[string]string
+	Data interface{} `json:"data"`
+}
+
+// SelectOptionsResponse represents the response of the request
+// that returns options for select element
+type SelectOptionsResponse struct {
+	Data selector.SelectOptions `json:"data"`
 }
 
 // Get returns the body of the response and error if any

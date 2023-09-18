@@ -1,11 +1,15 @@
 package dom
 
-import "syscall/js"
+import (
+	"syscall/js"
+
+	"github.com/akosgarai/wasm-example/pkg/client/dom/selector"
+)
 
 // SimpleSelect returns a simple select element.
 // The document input parameter is the document.
 // The next input parameter is the map of options.
-func SimpleSelect(document js.Value, options map[string]string, inputName, selected string) js.Value {
+func SimpleSelect(document js.Value, options selector.SelectOptions, inputName string, selected *selector.Selected) js.Value {
 	builder := newSelectBuilder(document, "simple")
 	selectorWrapper := builder.wrapper()
 	// Add the hidden input element to the selectorWrapper
@@ -13,7 +17,7 @@ func SimpleSelect(document js.Value, options map[string]string, inputName, selec
 	selectorWrapper.Call("appendChild", hiddenInput)
 	// The selected is displayed in a readonly text input and next to it is a button to open the select options.
 	// Add the readonly text input to the selectorWrapper
-	readonlyInput := builder.displayInput(options[selected], true)
+	readonlyInput := builder.displayInput("", true)
 	selectorWrapper.Call("appendChild", readonlyInput)
 	// Add the button to the selectorWrapper
 	button := Button(document, "Select")
@@ -36,7 +40,7 @@ func SimpleSelect(document js.Value, options map[string]string, inputName, selec
 	}))
 	selectorWrapper.Call("appendChild", button)
 	// Add the select options to the selectorWrapper
-	builder.buildOptionsFromMap(document, optionsWrapper, hiddenInput, readonlyInput, options, selected)
+	builder.buildOptions(document, optionsWrapper, hiddenInput, readonlyInput, options, selected)
 	selectorWrapper.Call("appendChild", optionsWrapper)
 	return selectorWrapper
 }

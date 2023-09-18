@@ -3,9 +3,11 @@ package layout
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"syscall/js"
 
 	"github.com/akosgarai/wasm-example/pkg/client/dom"
+	"github.com/akosgarai/wasm-example/pkg/client/dom/selector"
 	"github.com/akosgarai/wasm-example/pkg/page"
 )
 
@@ -26,25 +28,21 @@ type formItem struct {
 
 // map: form name -> map: form tag -> form item
 var formItems = []formItem{
-	{"checkbox", map[string]interface{}{
-		"id":    "env-staging",
-		"name":  "env-staging",
-		"title": "Staging environment",
-		"label": "Staging environment",
+	{"checkboxList", map[string]interface{}{
+		"id":     "environments",
+		"name":   "environments",
+		"title":  "Environments",
+		"apiUrl": "/options/environments/",
 	}},
-	{"checkbox", map[string]interface{}{
-		"id":    "env-production",
-		"name":  "env-production",
-		"title": "Production environment",
-		"label": "Production environment",
-	}},
-	{"input", map[string]interface{}{
+	{"select", map[string]interface{}{
 		"id":          "project-client",
 		"name":        "project-client",
-		"type":        "text",
+		"type":        "api",
 		"placeholder": "[a-z0-9-]",
 		"title":       "Project client [a-z0-9-]",
 		"label":       "Project client",
+		"apiUrl":      "/options/clients/",
+		"selected":    "",
 	}},
 	{"select", map[string]interface{}{
 		"id":          "project-name",
@@ -54,6 +52,7 @@ var formItems = []formItem{
 		"title":       "Project name [a-z0-9-]",
 		"label":       "Project name",
 		"apiUrl":      "/options/projects/",
+		"selected":    "",
 	}},
 	{"input", map[string]interface{}{
 		"id":          "project-owner-email",
@@ -64,20 +63,22 @@ var formItems = []formItem{
 		"value":       "example@email.com",
 	}},
 	{"select", map[string]interface{}{
-		"id":     "project-runtime",
-		"name":   "project-runtime",
-		"type":   "apisimple",
-		"label":  "Project runtime",
-		"title":  "Project runtime",
-		"apiUrl": "/options/runtimes/",
+		"id":       "project-runtime",
+		"name":     "project-runtime",
+		"type":     "apisimple",
+		"label":    "Project runtime",
+		"title":    "Project runtime",
+		"apiUrl":   "/options/runtimes/",
+		"selected": 0,
 	}},
 	{"select", map[string]interface{}{
-		"id":     "project-database",
-		"name":   "project-database",
-		"type":   "apisimple",
-		"label":  "Project database",
-		"title":  "Project database",
-		"apiUrl": "/options/databases/",
+		"id":       "project-database",
+		"name":     "project-database",
+		"type":     "apisimple",
+		"label":    "Project database",
+		"title":    "Project database",
+		"apiUrl":   "/options/databases/",
+		"selected": 0,
 	}},
 }
 
@@ -117,6 +118,11 @@ func (l *Layout) LoadPage() {
 	submitContainer.Call("appendChild", submit)
 	form.Call("appendChild", submitContainer)
 	// Add the script execution result container.
+	generalErrorContainer := dom.Div(l.Document(), map[string]interface{}{
+		"id":        "general-error",
+		"className": "row error",
+	})
+	generalErrorContainer.Call("appendChild", dom.P(l.Document(), ""))
 	stagingErrorContainer := dom.Div(l.Document(), map[string]interface{}{
 		"id":        "staging-error",
 		"className": "row error",
@@ -137,6 +143,7 @@ func (l *Layout) LoadPage() {
 		"className": "row result",
 	})
 	productionResultContainer.Call("appendChild", dom.P(l.Document(), ""))
+	container.Call("appendChild", generalErrorContainer)
 	container.Call("appendChild", stagingErrorContainer)
 	container.Call("appendChild", productionErrorContainer)
 	container.Call("appendChild", stagingResultContainer)
@@ -162,8 +169,8 @@ func (l *Layout) buildFormItem(tag string, attributes map[string]interface{}) js
 	case "select":
 		formItem = l.buildSelectFormItem(attributes)
 		break
-	case "checkbox":
-		formItem = l.buildCheckboxFormItem(attributes)
+	case "checkboxList":
+		formItem = l.buildCheckboxFormItems(attributes)
 		break
 	}
 	return formItem
@@ -174,25 +181,34 @@ func (l *Layout) buildFormItem(tag string, attributes map[string]interface{}) js
 func (l *Layout) submitForm() js.Func {
 	jsonFunc := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		go func() {
-			envStaging := "false"
-			if l.Document().Call("querySelector", "#env-staging").Get("checked").Bool() {
-				envStaging = "true"
+			var environments []map[string]interface{}
+			checkedEnvironments := l.Document().Call("querySelectorAll", "input[name='environments']:checked")
+			for i := 0; i < checkedEnvironments.Length(); i++ {
+				environmentIDString := checkedEnvironments.Index(i).Get("value").String()
+				environmentID, _ := strconv.Atoi(environmentIDString)
+				environments = append(environments, map[string]interface{}{
+					"id":   environmentID,
+					"name": environmentIDString,
+				})
 			}
-			envProduction := "false"
-			if l.Document().Call("querySelector", "#env-production").Get("checked").Bool() {
-				envProduction = "true"
+			var runtimeID int
+			if l.Document().Call("querySelector", "#project-runtime").Get("value").String() != "" {
+				runtimeID, _ = strconv.Atoi(l.Document().Call("querySelector", "#project-runtime").Get("value").String())
+			}
+			var databaseID int
+			if l.Document().Call("querySelector", "#project-database").Get("value").String() != "" {
+				databaseID, _ = strconv.Atoi(l.Document().Call("querySelector", "#project-database").Get("value").String())
 			}
 			// call the /ping endpoint with the form data
 			// the response has to be logged to the console
-			projectData := map[string]string{
+			projectData := map[string]interface{}{
 				"command":             "create-project",
 				"project-name":        l.Document().Call("querySelector", "#project-name").Get("value").String(),
 				"project-client":      l.Document().Call("querySelector", "#project-client").Get("value").String(),
 				"project-owner-email": l.Document().Call("querySelector", "#project-owner-email").Get("value").String(),
-				"project-runtime":     l.Document().Call("querySelector", "#project-runtime").Get("value").String(),
-				"project-database":    l.Document().Call("querySelector", "#project-database").Get("value").String(),
-				"env-staging":         envStaging,
-				"env-production":      envProduction,
+				"project-runtime":     runtimeID,
+				"project-database":    databaseID,
+				"project-environment": environments,
 			}
 			jsonStr, err := json.Marshal(projectData)
 			if err != nil {
@@ -233,7 +249,9 @@ func (l *Layout) socketMessage() js.Func {
 			for key, value := range responseData {
 				// write the response to the result containers
 				resultContainer := l.Document().Call("querySelector", "#"+key+" p")
-				resultContainer.Set("innerText", value)
+				if resultContainer.IsNull() == false {
+					resultContainer.Set("innerText", value)
+				}
 			}
 		}()
 		return nil
@@ -245,7 +263,9 @@ func (l *Layout) socketMessage() js.Func {
 func (l *Layout) clearErrorMessages() {
 	for _, item := range formItems {
 		errorMessageContainer := l.Document().Call("querySelector", "#"+item.Attributes["id"].(string)+"-error-message")
-		errorMessageContainer.Set("innerText", "")
+		if errorMessageContainer.IsNull() == false {
+			errorMessageContainer.Set("innerText", "")
+		}
 	}
 	// clear the script execution messages also.
 	selectors := []string{"staging-error", "staging-path", "production-error", "production-path"}
@@ -268,20 +288,30 @@ func (l *Layout) addErrors(errorMapInterface map[string]interface{}) {
 			}
 		}
 	}
+	if errorMapInterface["general"] != nil {
+		generalErrorMessage := errorMapInterface["general"].(interface{})
+		errorMessageContainer := l.Document().Call("querySelector", "#general-error")
+		errorMessageContainer.Set("innerText", "")
+		msgParagraph := dom.P(l.Document(), generalErrorMessage.(string))
+		errorMessageContainer.Call("appendChild", msgParagraph)
+	}
 }
 
 // buildSelectFormItem returns a select form item.
 func (l *Layout) buildSelectFormItem(attributes map[string]interface{}) js.Value {
 	id := attributes["id"].(string)
-	var selector js.Value
+	var selectorItem js.Value
 	if attributes["type"] == "api" {
-		selector = dom.APISelect(l.Document(), attributes["apiUrl"].(string), id, "")
+		selected, err := selector.NewSelected(attributes["selected"])
+		if err == nil {
+			selectorItem = dom.APISelect(l.Document(), attributes["apiUrl"].(string), id, selected)
+		}
 	} else if attributes["type"] == "apisimple" {
 		// Get the option values from the given API url.
-		selector = dom.SimpleAPISelect(l.Document(), attributes["apiUrl"].(string), id, "")
-	} else if attributes["type"] == "simple" {
-		options := attributes["options"].(map[string]string)
-		selector = dom.SimpleSelect(l.Document(), options, id, "")
+		selected, err := selector.NewSelected(attributes["selected"])
+		if err == nil {
+			selectorItem = dom.SimpleAPISelect(l.Document(), attributes["apiUrl"].(string), id, selected)
+		}
 	}
 	itemContainer := dom.Div(l.Document(), map[string]interface{}{"className": "form-item", "id": attributes["id"].(string) + "-container"})
 	// if we have label, we have to create it and append it to the itemContainer
@@ -289,7 +319,7 @@ func (l *Layout) buildSelectFormItem(attributes map[string]interface{}) js.Value
 		label := dom.Label(l.Document(), attributes["label"].(string), attributes["id"].(string))
 		itemContainer.Call("appendChild", label)
 	}
-	itemContainer.Call("appendChild", selector)
+	itemContainer.Call("appendChild", selectorItem)
 	// add the error message container
 	errorMessageContainer := dom.Div(l.Document(), map[string]interface{}{"className": "error-message", "id": attributes["id"].(string) + "-error-message"})
 	itemContainer.Call("appendChild", errorMessageContainer)
@@ -312,14 +342,8 @@ func (l *Layout) buildInputFormItem(inputType string, attributes map[string]inte
 	return itemContainer
 }
 
-// buildCheckboxFormItem returns a checkbox form item.
-func (l *Layout) buildCheckboxFormItem(attributes map[string]interface{}) js.Value {
-	itemContainer := dom.Div(l.Document(), map[string]interface{}{"className": "form-item center", "id": attributes["id"].(string) + "-container"})
-	// append the checkbox
-	checkbox := dom.CheckBox(l.Document(), attributes["id"].(string), attributes["label"].(string), false)
-	itemContainer.Call("appendChild", checkbox)
-	// add the error message container
-	errorMessageContainer := dom.Div(l.Document(), map[string]interface{}{"className": "error-message", "id": attributes["id"].(string) + "-error-message"})
-	itemContainer.Call("appendChild", errorMessageContainer)
-	return itemContainer
+// buildCheckboxFormItems returns a list of checkbox form items.
+func (l *Layout) buildCheckboxFormItems(attributes map[string]interface{}) js.Value {
+	chechboxList := dom.CheckBoxList(l.Document(), attributes["id"].(string), attributes["name"].(string), attributes["title"].(string), attributes["apiUrl"].(string))
+	return chechboxList
 }

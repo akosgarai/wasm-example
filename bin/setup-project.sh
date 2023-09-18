@@ -33,7 +33,7 @@ TARGET_DIR="${DOCUMENT_ROOT}${CLIENT_DIR_NAME}/${PROJECT_DIR_NAME}"
 
 # If the target directory already exists, then exit with error message
 if [ -d "${TARGET_DIR}" ]; then
-	echo "Target directory already exists"
+	echo "Target directory already exists. '${TARGET_DIR}'"
 	exit 1
 fi
 # create the target directory

@@ -10,8 +10,15 @@ services:
       - 9090:9090
     environment:
       - ASSETS_DIR=/app/assets
+      - MYSQL_DATABASE=wasm_app_db
+      - MYSQL_USER=wasm-app-user
+      - MYSQL_PASSWORD=password
+      - MYSQL_HOST=db
     networks:
       - wasm
+    depends_on:
+      db:
+        condition: service_healthy
 
   staging:
     build:
@@ -34,3 +41,29 @@ services:
       - 9096:80
     networks:
       - wasm
+
+  db:
+    image: mysql:8.1
+    restart: always
+    environment:
+      MYSQL_DATABASE: 'wasm_app_db'
+      MYSQL_USER: 'wasm-app-user'
+      MYSQL_PASSWORD: 'password'
+      MYSQL_ROOT_PASSWORD: 'password'
+    ports:
+      # <Port exposed> : <MySQL Port running inside container>
+      - '3306:3306'
+      # Where our data will be persisted
+    volumes:
+      - mysql-db:/var/lib/mysql
+    networks:
+      - wasm
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "$$MYSQL_USER", "-p$$MYSQL_PASSWORD"]
+      retries: 3
+      timeout: 5s
+
+
+# Names our volume
+volumes:
+  mysql-db:
