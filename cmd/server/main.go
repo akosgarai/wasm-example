@@ -96,6 +96,8 @@ func main() {
 	{
 		options.GET("/projects", appController.ProjectNames)
 		options.POST("/projects", appController.ProjectNamesWithQuery)
+		options.GET("/clients", appController.ClientNames)
+		options.POST("/clients", appController.ClientNamesWithQuery)
 		options.GET("/runtimes", appController.ProjectRuntimes)
 		options.GET("/databases", appController.ProjectDatabases)
 		options.GET("/environments", appController.ProjectEnvironments)

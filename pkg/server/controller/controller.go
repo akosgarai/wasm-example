@@ -89,6 +89,37 @@ func (app *AppController) ProjectNamesWithQuery(c *gin.Context) {
 	})
 }
 
+// ClientNames is the handler function of the /clients endpoint.
+// It returns the list of the clients for the select component.
+func (app *AppController) ClientNames(c *gin.Context) {
+	clientList := []models.Client{}
+	app.db.Find(&clientList)
+	c.JSON(200, gin.H{
+		"data": app.clientTransform(clientList),
+	})
+}
+
+// ClientNamesWithQuery is the handler function of the /clients endpoint.
+// It returns the list of the projects for the select component.
+func (app *AppController) ClientNamesWithQuery(c *gin.Context) {
+	queryRequest := request.QueryRequest{}
+	if err := c.ShouldBindJSON(&queryRequest); err != nil {
+		c.JSON(400, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+	if queryRequest.Query == "" {
+		app.ClientNames(c)
+		return
+	}
+	clientList := []models.Client{}
+	app.db.Where("name LIKE ?", "%"+queryRequest.Query+"%").Find(&clientList)
+	c.JSON(200, gin.H{
+		"data": app.clientTransform(clientList),
+	})
+}
+
 // projectTransform changes the output structure to make it fit to the frontend.
 func (app *AppController) projectTransform(projects []models.Project) []map[string]interface{} {
 	var result []map[string]interface{}
@@ -96,6 +127,18 @@ func (app *AppController) projectTransform(projects []models.Project) []map[stri
 		result = append(result, map[string]interface{}{
 			"id":   project.Name,
 			"name": project.Name,
+		})
+	}
+	return result
+}
+
+// clientTransform changes the output structure to make it fit to the frontend.
+func (app *AppController) clientTransform(clients []models.Client) []map[string]interface{} {
+	var result []map[string]interface{}
+	for _, client := range clients {
+		result = append(result, map[string]interface{}{
+			"id":   client.Name,
+			"name": client.Name,
 		})
 	}
 	return result
