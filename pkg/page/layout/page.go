@@ -34,13 +34,15 @@ var formItems = []formItem{
 		"title":  "Environments",
 		"apiUrl": "/options/environments/",
 	}},
-	{"input", map[string]interface{}{
+	{"select", map[string]interface{}{
 		"id":          "project-client",
 		"name":        "project-client",
-		"type":        "text",
+		"type":        "api",
 		"placeholder": "[a-z0-9-]",
 		"title":       "Project client [a-z0-9-]",
 		"label":       "Project client",
+		"apiUrl":      "/options/clients/",
+		"selected":    "",
 	}},
 	{"select", map[string]interface{}{
 		"id":          "project-name",
