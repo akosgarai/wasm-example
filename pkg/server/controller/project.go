@@ -18,7 +18,7 @@ import (
 var (
 	mapIPToLocalhost = map[string]string{
 		"staging":    "localhost:9091",
-		"production": "localhost:9092",
+		"production": "localhost:9096",
 	}
 )
 
@@ -79,8 +79,9 @@ func (app *AppController) processMessage(msg []byte, conn *websocket.Conn) *resp
 		// Create the project on the environment
 		// Get the entry from the host table by the environment id
 		hostEntry := &models.Host{EnvironmentID: uint(env.ID)}
-		app.db.Preload("Environment").First(hostEntry)
-		logMessage := fmt.Sprintf("Host entry: %+v , %+v", hostEntry, appEntry)
+		// This solution assumes that we only have one host entry for each environment.
+		app.db.Preload("Environment").Where("environment_id = ?", uint(env.ID)).First(hostEntry)
+		logMessage := fmt.Sprintf("Host entry: %s , %s/%s, %d", hostEntry.IP, appEntry.Client.Name, appEntry.Project.Name, env.ID)
 		resp.Data["temp-log"] = logMessage
 		responseString := app.executeServerCommand(hostEntry, appEntry)
 		if strings.Contains(responseString, "The project has been created.") {
