@@ -23,7 +23,7 @@ func initDatabaseConnection() *gorm.DB {
 		panic("Failed to connect to database!")
 	}
 	// Execute the migrations
-	db.AutoMigrate(&models.Project{}, &models.Runtime{}, &models.Dbtype{}, &models.Client{}, &models.Environment{}, &models.Host{})
+	db.AutoMigrate(&models.Project{}, &models.Runtime{}, &models.Dbtype{}, &models.Client{}, &models.Environment{}, &models.Host{}, &models.Application{})
 	// Seed the database with the default values.
 	dbNames := []string{"mysql", "no"}
 	for _, name := range dbNames {
@@ -57,10 +57,16 @@ func initDatabaseConnection() *gorm.DB {
 	stagingHost.IP = stagingHostName
 	stagingHost.EnvironmentID = stagingEnvironment.ID
 	stagingHost.Name = "server-staging"
+	stagingHost.SSHUser = "scriptexecutor"
+	stagingHost.SSHPort = 2222
+	stagingHost.SSHKey = "/root/.ssh/id_rsa_shared"
 	var productionHost models.Host
 	productionHost.IP = productionHostName
 	productionHost.EnvironmentID = productionEnvironment.ID
 	productionHost.Name = "server-production"
+	productionHost.SSHUser = "scriptexecutor"
+	productionHost.SSHPort = 2222
+	productionHost.SSHKey = "/root/.ssh/id_rsa_shared"
 	if err := db.Where("ip = ?", stagingHostName).Where("environment_id = ?", stagingEnvironment.ID).Attrs(stagingHost).FirstOrCreate(&stagingHost).Error; err != nil {
 		panic("Failed to seed database!")
 	}
